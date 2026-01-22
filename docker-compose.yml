@@ -1,0 +1,46 @@
+version: '3.8'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: analparking_laravel
+    container_name: analparking
+    restart: unless-stopped
+    volumes:
+      - .:/var/www
+    networks:
+      - laravel-net
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: analparking_laravel
+    container_name: analparking_queue
+    restart: unless-stopped
+    command: php artisan queue:work --tries=3 --sleep=3 --max-time=3600
+    volumes:
+      - .:/var/www
+    networks:
+      - laravel-net
+    depends_on:
+      - app
+
+  nginx:
+    image: nginx:alpine
+    container_name: laravel_nginx
+    restart: unless-stopped
+    ports:
+      - "7070:80" 
+    volumes:
+      - .:/var/www
+      - ./nginx:/etc/nginx/conf.d
+    networks:
+      - laravel-net
+    depends_on:
+      - app
+
+networks:
+  laravel-net:
+    driver: bridge

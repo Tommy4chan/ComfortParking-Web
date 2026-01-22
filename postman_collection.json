@@ -1,0 +1,435 @@
+{
+	"info": {
+		"_postman_id": "analparking-api-v1",
+		"name": "AnalParking API - V1",
+		"description": "REST API for Parking Zones, IoT Device Management, and Image Recognition Webhooks",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "external_api_url",
+			"value": "http://localhost:5001",
+			"type": "string",
+			"description": "External image recognition API base URL"
+		},
+		{
+			"key": "api_secret",
+			"value": "your-api-secret-key",
+			"type": "string",
+			"description": "HMAC secret for signing requests to external API"
+		},
+		{
+			"key": "webhook_secret",
+			"value": "your-webhook-secret-key",
+			"type": "string",
+			"description": "HMAC secret for webhook signature verification"
+		},
+		{
+			"key": "signature_header",
+			"value": "X-Signature",
+			"type": "string",
+			"description": "Header name for HMAC signature"
+		}
+	],
+	"item": [
+		{
+			"name": "Parking Zones",
+			"item": [
+				{
+					"name": "Get Zones in Bounds",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/zones/in-bounds?latitude=50.09333620560035&longitude=25.135551150888205&latitudeDelta=0.00582105269376143&longitudeDelta=0.004413910210132599",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "zones", "in-bounds"],
+							"query": [
+								{
+									"key": "latitude",
+									"value": "50.09333620560035",
+									"description": "Center latitude of map region"
+								},
+								{
+									"key": "longitude",
+									"value": "25.135551150888205",
+									"description": "Center longitude of map region"
+								},
+								{
+									"key": "latitudeDelta",
+									"value": "0.00582105269376143",
+									"description": "Latitude span (max 0.09 ≈ 10km, auto-clamped)"
+								},
+								{
+									"key": "longitudeDelta",
+									"value": "0.004413910210132599",
+									"description": "Longitude span (max 0.09 ≈ 10km, auto-clamped)"
+								}
+							]
+						},
+						"description": "Get all parking zones within map viewport bounds. Accepts React Native map region format (center + deltas). Deltas are automatically clamped to max 10km area. Uses PostGIS spatial indexing for performance."
+					}
+				},
+				{
+					"name": "Get Zones Nearby",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/zones/nearby?lat=40.7589&lng=-73.9851&radius=2000",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "zones", "nearby"],
+							"query": [
+								{
+									"key": "lat",
+									"value": "40.7589",
+									"description": "Latitude of user location"
+								},
+								{
+									"key": "lng",
+									"value": "-73.9851",
+									"description": "Longitude of user location"
+								},
+								{
+									"key": "radius",
+									"value": "2000",
+									"description": "Search radius in meters (max 50000)"
+								}
+							]
+						},
+						"description": "Find parking zones within a radius of a location. Returns zones ordered by distance. Uses geography-aware distance calculation."
+					}
+				}
+			]
+		},
+		{
+			"name": "IoT Devices",
+			"item": [
+				{
+					"name": "Sync Device Data",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "hash",
+									"value": "your_device_hash_32_characters_",
+									"type": "text"
+								},
+								{
+									"key": "battery_voltage",
+									"value": "3500",
+									"type": "text"
+								},
+								{
+									"key": "children[0][hash]",
+									"value": "child_device_hash_1_32chars___",
+									"type": "text"
+								},
+								{
+									"key": "children[0][battery_voltage]",
+									"value": "3200",
+									"type": "text"
+								},
+								{
+									"key": "children[0][is_spot_used]",
+									"value": "1",
+									"type": "text"
+								},
+								{
+									"key": "children[1][hash]",
+									"value": "child_device_hash_2_32chars___",
+									"type": "text"
+								},
+								{
+									"key": "children[1][battery_voltage]",
+									"value": "3400",
+									"type": "text"
+								},
+								{
+									"key": "children[1][is_spot_used]",
+									"value": "0",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/devices/sync",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "devices", "sync"]
+						},
+						"description": "Sync device data from IoT device. Authenticates using device hash. Updates device battery, syncs all child devices, updates parking spot occupancy. If image is included, sends it to external API with HMAC signature (non-blocking). Always returns 200 OK."
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Note: Device sync uses hash-based authentication, not HMAC",
+									"// The hash field is validated against the devices table",
+									"console.log('Device hash authentication - no HMAC signature needed for this endpoint');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Sync Device - No Children",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "hash",
+									"value": "your_device_hash_32_characters_",
+									"type": "text"
+								},
+								{
+									"key": "battery_voltage",
+									"value": "3500",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/devices/sync",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "devices", "sync"]
+						},
+						"description": "Minimal sync - just update device battery voltage without children or image data. Returns 200 OK."
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"console.log('Minimal device sync - hash authentication only');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Sync Device - With Image",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "hash",
+									"value": "your_device_hash_32_characters_",
+									"type": "text"
+								},
+								{
+									"key": "battery_voltage",
+									"value": "3500",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": [],
+									"description": "Upload an image file (JPEG, PNG, etc.)"
+								},
+								{
+									"key": "children[0][hash]",
+									"value": "child_device_hash_1_32chars___",
+									"type": "text"
+								},
+								{
+									"key": "children[0][battery_voltage]",
+									"value": "3200",
+									"type": "text"
+								},
+								{
+									"key": "children[0][is_spot_used]",
+									"value": "1",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/devices/sync",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "devices", "sync"]
+						},
+						"description": "Sync with uploaded image file (multipart/form-data). Image is sent to external recognition API as binary with HMAC signature in {{signature_header}} header. External API processes async and sends results via webhook. Returns 200 OK immediately."
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Device authenticates with hash",
+									"// Laravel will generate HMAC signature when forwarding image to external API",
+									"console.log('Device sync with image - Laravel handles outbound HMAC signing');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Webhooks",
+			"item": [
+				{
+					"name": "Image Recognition Webhook",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "{{signature_header}}",
+								"value": "{{webhook_signature}}",
+								"description": "HMAC-SHA256 signature of request body"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"results\": [\n        {\n            \"parking_spot_id\": 1,\n            \"is_used\": true\n        },\n        {\n            \"parking_spot_id\": 2,\n            \"is_used\": false\n        },\n        {\n            \"parking_spot_id\": 3,\n            \"is_used\": true\n        }\n    ],\n    \"processed_image_base64\": \"/9j/4AAQSkZJRgABAQEAAAAAAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD3+iiigD//2Q==\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/webhooks/image-recognition",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "webhooks", "image-recognition"]
+						},
+						"description": "Webhook endpoint for external image recognition API to return processed results. Validates HMAC signature from {{signature_header}} header. Updates parking spot occupancy based on is_used field and compares with sensor data. Returns 200 OK on success."
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate HMAC signature for webhook",
+									"const secret = pm.variables.get('webhook_secret');",
+									"const body = pm.request.body.raw;",
+									"",
+									"if (secret && body) {",
+									"    const signature = CryptoJS.HmacSHA256(body, secret).toString();",
+									"    pm.variables.set('webhook_signature', signature);",
+									"    console.log('Generated HMAC signature:', signature);",
+									"} else {",
+									"    console.warn('Missing webhook_secret variable or request body');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "External Image Recognition API",
+			"item": [
+				{
+					"name": "Analyze Image (Receive from Laravel)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "{{signature_header}}",
+								"value": "{{outbound_signature}}",
+								"description": "HMAC-SHA256 signature: hash_hmac('sha256', device_id + parking_spots_json, api_secret)"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"device_id\": 1,\n    \"parking_spots\": \"[{\\\"id\\\":1,\\\"index\\\":0,\\\"mask\\\":{\\\"point_1_x\\\":10,\\\"point_1_y\\\":20,\\\"point_2_x\\\":100,\\\"point_2_y\\\":20,\\\"point_3_x\\\":100,\\\"point_3_y\\\":120,\\\"point_4_x\\\":10,\\\"point_4_y\\\":120},\\\"child_devices\\\":[{\\\"id\\\":1,\\\"is_spot_used\\\":true}]},{\\\"id\\\":2,\\\"index\\\":1,\\\"mask\\\":{\\\"point_1_x\\\":110,\\\"point_1_y\\\":20,\\\"point_2_x\\\":200,\\\"point_2_y\\\":20,\\\"point_3_x\\\":200,\\\"point_3_y\\\":120,\\\"point_4_x\\\":110,\\\"point_4_y\\\":120},\\\"child_devices\\\":[{\\\"id\\\":2,\\\"is_spot_used\\\":false}]}]\",\n    \"image_base64\": \"/9j/4AAQSkZJRgABAQEAAAAAAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD3+iiigD//2Q==\"\n}"
+						},
+						"url": {
+							"raw": "{{external_api_url}}/analyze",
+							"host": ["{{external_api_url}}"],
+							"path": ["analyze"]
+						},
+						"description": "**This endpoint is called BY Laravel, not by you directly.**\n\nWhen a device syncs with an image, Laravel automatically:\n1. Saves the image\n2. Generates HMAC signature: `hash_hmac('sha256', device_id . parking_spots_json, api_secret)`\n3. Sends this request to the external API\n4. Returns success to device immediately (non-blocking)\n\n**Request Details:**\n- **Method:** POST\n- **Content-Type:** application/json\n- **Authentication:** HMAC-SHA256 in header (configurable, default: X-Signature)\n\n**JSON Body:**\n- `device_id` (integer): Device that captured image\n- `parking_spots` (JSON string): Array of parking spot data including:\n  - `id`: Parking spot database ID\n  - `index`: Spot index within device\n  - `mask`: Coordinates {point_1_x, point_1_y, ... point_4_y}\n  - `child_devices`: Array of sensors with {id, is_spot_used}\n- `image_base64` (string): Base64 encoded image data\n\n**Expected Response:**\n- Status: 200 OK\n- Body: Any JSON (logged but not validated)\n\n**After Processing:**\nExternal API should send results back via webhook to:\n`POST {{base_url}}/api/v1/webhooks/image-recognition`"
+					},
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate HMAC signature for outbound request",
+									"const secret = pm.variables.get('api_secret');",
+									"try {",
+									"    const body = JSON.parse(pm.request.body.raw);",
+									"    const deviceId = body.device_id;",
+									"    const parkingSpots = body.parking_spots;",
+									"",
+									"    if (secret && deviceId && parkingSpots) {",
+									"        const dataToSign = deviceId + parkingSpots;",
+									"        const signature = CryptoJS.HmacSHA256(dataToSign, secret).toString();",
+									"        pm.variables.set('outbound_signature', signature);",
+									"        console.log('Generated outbound HMAC signature:', signature);",
+									"    } else {",
+									"        console.warn('Missing required data for signature generation');",
+									"    }",
+									"} catch (e) {",
+									"    console.error('Failed to parse request body for signature generation', e);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			],
+			"description": "External image recognition API endpoints that receive requests FROM Laravel (not from IoT devices). Laravel sends images with HMAC authentication for processing."
+		}
+	]
+}
