@@ -5,29 +5,33 @@ import { Device, type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { MapPin, Hash, Plus, Image as ImageIcon } from 'lucide-react';
+import { MapPin, Image as ImageIcon } from 'lucide-react';
 import ActionButtons from '@/components/custom-ui/actionButtons';
 import ParkingSpotsGrid from '@/components/custom-ui/parkingSpotsGrid';
 import FormattedDate from '@/components/custom-ui/formattedDate';
 import BatteryVoltageBadge from '@/components/custom-ui/batteryVoltageBadge';
 import StatusBadge from '@/components/custom-ui/statusBadge';
-import { CopyButton } from '@/components/ui/copyButton';
 import NothingFoundList from '@/components/custom-ui/nothingFoundList';
 import childDevices from '@/routes/child-devices';
 import { buttonVariants } from '@/components/ui/button';
 import HashText from '@/components/custom-ui/hashText';
 import ListLayout from '@/layouts/list/layout';
 import SpotStatusBadge from '@/components/custom-ui/spotStatusBadge';
-import parkingSpots from '@/routes/parking-spots';
 import { useState } from 'react';
 import ImageDialog from '@/components/custom-ui/imageDialog';
+
+const getDetailedStatusMessage = (status: string, battery: number) => {
+    if (status === 'online') return 'Device is operating normally.';
+    if (status === 'offline') return 'Device is completely offline.';
+    if (status === 'low_battery') return `Battery level is critical (${(battery / 1000).toFixed(2)}V).`;
+    return 'Device is experiencing connectivity warnings or delayed heartbeats.';
+};
 
 export default function Show({ device }: { device: Device }) {
     const [imageDialogOpen, setImageDialogOpen] = useState(false);
     const [processedImageDialogOpen, setProcessedImageDialogOpen] = useState(false);
-    
+
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Parking Zones',
@@ -42,6 +46,8 @@ export default function Show({ device }: { device: Device }) {
             href: devices.show(device.id).url,
         },
     ];
+
+    const hasZonePoints = device.zone_point_1_x !== null;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -67,7 +73,6 @@ export default function Show({ device }: { device: Device }) {
                                 editUrl={devices.edit(device.id).url}
                                 title={device.title}
                                 isBigButtons={true}
-
                             />
                         </div>
                     </CardHeader>
@@ -87,7 +92,14 @@ export default function Show({ device }: { device: Device }) {
                             </div>
                             <div className="space-y-1">
                                 <p className="text-sm font-medium text-muted-foreground">Status</p>
-                                <StatusBadge status={device.status} />
+                                <div className="flex items-center gap-2">
+                                    <StatusBadge status={device.status} />
+                                    {device.status !== 'online' && (
+                                        <span className="text-sm text-muted-foreground border-l border-border pl-2">
+                                            {getDetailedStatusMessage(device.status, device.battery_voltage)}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                             <div className="space-y-1">
                                 <p className="text-sm font-medium text-muted-foreground">Location</p>
@@ -103,77 +115,42 @@ export default function Show({ device }: { device: Device }) {
                                     <FormattedDate date={device.last_reported_at} format="with-timezone" />
                                 </p>
                             </div>
+                            <div className="space-y-1">
+                                <p className="text-sm font-medium text-muted-foreground">Configured Spots</p>
+                                <p className="text-base">
+                                    {device.parking_spots_count ?? <span className="text-muted-foreground">Not set</span>}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Zone of Interest */}
+                        <Separator />
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground">Zone of Interest</p>
+                            {hasZonePoints ? (
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                                    {([1, 2, 3, 4] as const).map((n) => (
+                                        <div key={n} className="rounded-md border bg-muted/40 px-3 py-2">
+                                            <p className="text-xs text-muted-foreground mb-1">Point {n}</p>
+                                            <p className="font-mono">
+                                                ({(device as any)[`zone_point_${n}_x`]}, {(device as any)[`zone_point_${n}_y`]})
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No zone configured — edit the device to set zone coordinates.</p>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
 
-                <ListLayout
-                    createUrl={parkingSpots.create({ query: { device_id: device.id } }).url}
-                    createText='Add Parking spot'
-                    title='Parking Spots'
-                    description='List of individual parking spots'
-                    isChild={true}
-                >
-                    {device.parking_spots && device.parking_spots.length > 0 ? (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Index</TableHead>
-                                    <TableHead className="text-center">Spot Status</TableHead>
-                                    <TableHead className="text-center">Point 1</TableHead>
-                                    <TableHead className="text-center">Point 2</TableHead>
-                                    <TableHead className="text-center">Point 3</TableHead>
-                                    <TableHead className="text-center">Point 4</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {device.parking_spots.map((parkingSpot) => (
-                                    <TableRow key={parkingSpot.id}>
-                                        <TableCell className="font-mono text-sm">{parkingSpot.index}</TableCell>
-                                        <TableCell className="text-center">
-                                            <SpotStatusBadge
-                                                isUsed={parkingSpot.is_used}
-                                            />
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            ({parkingSpot.point_1_x}, {parkingSpot.point_1_y})
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            ({parkingSpot.point_2_x}, {parkingSpot.point_2_y})
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            ({parkingSpot.point_3_x}, {parkingSpot.point_3_y})
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            ({parkingSpot.point_4_x}, {parkingSpot.point_4_y})
-                                        </TableCell>
-                                        <TableCell>
-                                            <ActionButtons
-                                                editUrl={parkingSpots.edit(parkingSpot.id).url}
-                                                destroyUrl={parkingSpots.destroy(parkingSpot.id).url}
-                                                title={`Parking Spot #${parkingSpot.index}`}
-                                            />
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    ) : (
-                        <NothingFoundList
-                            title="No parkin spots found"
-                            description="Get started by creating your first parking spot"
-                            createUrl={parkingSpots.create({ query: { device_id: device.id } }).url}
-                            createText='Add Parking spot'
-                        />
-                    )}
-                </ListLayout>
-
+                {/* Child Devices */}
                 <ListLayout
                     createUrl={childDevices.create({ query: { device_id: device.id } }).url}
                     createText='Add Child Device'
                     title='Child Devices'
-                    description='List of individual parking spot sensors'
+                    description='Individual parking spot sensors'
                     isChild={true}
                 >
                     {device.child_devices && device.child_devices.length > 0 ? (
@@ -184,7 +161,7 @@ export default function Show({ device }: { device: Device }) {
                                     <TableHead className="text-center">Spot Status</TableHead>
                                     <TableHead className="text-center">Battery</TableHead>
                                     <TableHead className="text-center">Device Status</TableHead>
-                                    <TableHead>Parking Spot</TableHead>
+                                    <TableHead className="text-center">Position (X, Y)</TableHead>
                                     <TableHead>Hash</TableHead>
                                     <TableHead>Last Reported</TableHead>
                                     <TableHead className='text-right'>Actions</TableHead>
@@ -207,12 +184,11 @@ export default function Show({ device }: { device: Device }) {
                                         <TableCell className="text-center">
                                             <StatusBadge status={childDevice.status} isSmall={true} />
                                         </TableCell>
-                                        <TableCell>
-                                            {childDevice.parking_spot_id ? (
-                                                <>Parking Spot #{device.parking_spots?.find(s => s.id === childDevice.parking_spot_id)?.index ?? 'N/A'}</>
-                                            ) : (
-                                                <span className="text-muted-foreground">Not assigned</span>
-                                            )}
+                                        <TableCell className="text-center font-mono text-sm">
+                                            {childDevice.position_x !== null && childDevice.position_y !== null
+                                                ? `(${childDevice.position_x}, ${childDevice.position_y})`
+                                                : <span className="text-muted-foreground">—</span>
+                                            }
                                         </TableCell>
                                         <TableCell className="text-muted-foreground">
                                             <HashText hash={childDevice.hash} />
@@ -233,15 +209,15 @@ export default function Show({ device }: { device: Device }) {
                         </Table>
                     ) : (
                         <NothingFoundList
-                            title="No child device found"
-                            description="Get started by creating your first child device"
+                            title="No child devices found"
+                            description="Add child sensors to individually track spot occupancy"
                             createUrl={childDevices.create({ query: { device_id: device.id } }).url}
                             createText='Add Child Device'
                         />
                     )}
                 </ListLayout>
 
-                
+                {/* Images */}
                 {(device.last_image_url || device.last_processed_image_url) && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {device.last_image_url && (
@@ -255,7 +231,7 @@ export default function Show({ device }: { device: Device }) {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div 
+                                    <div
                                         className="relative cursor-pointer group overflow-hidden rounded-lg border bg-muted"
                                         onClick={() => setImageDialogOpen(true)}
                                     >
@@ -286,7 +262,7 @@ export default function Show({ device }: { device: Device }) {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <div 
+                                    <div
                                         className="relative cursor-pointer group overflow-hidden rounded-lg border bg-muted"
                                         onClick={() => setProcessedImageDialogOpen(true)}
                                     >

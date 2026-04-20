@@ -30,7 +30,7 @@ export default function Create({ device }: { device: Device }) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Create Child Device" />
             <div className="flex flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
-                <div className="w-full max-w-lg">
+                <div className="w-full max-w-7xl">
                     <FormTemplate
                         device={device}
                         {...store()}

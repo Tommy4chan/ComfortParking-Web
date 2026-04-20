@@ -25,39 +25,27 @@ class ParkingZone extends Model
         'latitude',
         'longitude',
         'last_reported_at',
+        'available_spots',
     ];
-    
-    public function devices()
+
+    public function devices(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Device::class);
     }
 
     /**
-     * Get all parking spots through devices
+     * Scope to eager load parking statistics aggregated from device columns.
      */
-    public function parkingSpots()
+    public function scopeWithParkingStats($query): void
     {
-        return $this->hasManyThrough(ParkingSpot::class, Device::class);
-    }
-
-    /**
-     * Scope to eager load parking statistics
-     */
-    public function scopeWithParkingStats($query)
-    {
-        return $query
-            ->withCount('parkingSpots as total_spots')
-            ->withCount(['parkingSpots as used_spots' => function ($query) {
-                $query->where('is_used', true);
-            }])
-            ->withCount(['parkingSpots as available_spots' => function ($query) {
-                $query->where('is_used', false);
-            }])
+        $query
+            ->withSum('devices as total_spots', 'parking_spots_count')
+            ->withSum('devices as used_spots', 'used_parking_spots')
             ->withMax('devices', 'last_reported_at');
     }
 
     /**
-     * Get latitude from location point
+     * Get latitude from location point.
      */
     protected function latitude(): Attribute
     {
@@ -67,7 +55,7 @@ class ParkingZone extends Model
     }
 
     /**
-     * Get longitude from location point
+     * Get longitude from location point.
      */
     protected function longitude(): Attribute
     {
@@ -77,19 +65,24 @@ class ParkingZone extends Model
     }
 
     /**
-     * Get last reported timestamp from devices
+     * Get last reported timestamp from devices.
      */
     protected function lastReportedAt(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->devices_max_last_reported_at 
-                ? \Carbon\Carbon::parse($this->devices_max_last_reported_at) 
+            get: fn () => $this->devices_max_last_reported_at
+                ? \Carbon\Carbon::parse($this->devices_max_last_reported_at)
                 : null,
         );
     }
 
-    // public function deviceLogs()
-    // {
-    //     return $this->hasManyThrough(DeviceLog::class, Device::class);
-    // }
+    /**
+     * Get available spots based on total and used spots.
+     */
+    protected function availableSpots(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => max(0, ($this->total_spots ?? 0) - ($this->used_spots ?? 0)),
+        );
+    }
 }

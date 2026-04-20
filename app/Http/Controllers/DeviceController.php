@@ -8,8 +8,8 @@ use App\Models\Device;
 use App\Models\ParkingZone;
 use Clickbar\Magellan\Data\Geometries\Point;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 class DeviceController extends Controller
 {
@@ -51,6 +51,15 @@ class DeviceController extends Controller
             'parking_zone_id' => $validated['parking_zone_id'],
             'location' => $location,
             'hash' => $hash,
+            'zone_point_1_x' => $validated['zone_point_1_x'] ?? null,
+            'zone_point_1_y' => $validated['zone_point_1_y'] ?? null,
+            'zone_point_2_x' => $validated['zone_point_2_x'] ?? null,
+            'zone_point_2_y' => $validated['zone_point_2_y'] ?? null,
+            'zone_point_3_x' => $validated['zone_point_3_x'] ?? null,
+            'zone_point_3_y' => $validated['zone_point_3_y'] ?? null,
+            'zone_point_4_x' => $validated['zone_point_4_x'] ?? null,
+            'zone_point_4_y' => $validated['zone_point_4_y'] ?? null,
+            'parking_spots_count' => $validated['parking_spots_count'] ?? null,
         ]);
 
         return redirect()->route('devices.show', $device->id);
@@ -58,7 +67,7 @@ class DeviceController extends Controller
 
     public function show(Device $device)
     {
-        $device->load(['parkingZone', 'childDevices', 'parkingSpots']);
+        $device->load(['parkingZone', 'childDevices']);
 
         return Inertia::render('devices/show', [
             'device' => $device,
@@ -87,6 +96,15 @@ class DeviceController extends Controller
             'title' => $validated['title'],
             'parking_zone_id' => $validated['parking_zone_id'],
             'location' => $location,
+            'zone_point_1_x' => $validated['zone_point_1_x'] ?? null,
+            'zone_point_1_y' => $validated['zone_point_1_y'] ?? null,
+            'zone_point_2_x' => $validated['zone_point_2_x'] ?? null,
+            'zone_point_2_y' => $validated['zone_point_2_y'] ?? null,
+            'zone_point_3_x' => $validated['zone_point_3_x'] ?? null,
+            'zone_point_3_y' => $validated['zone_point_3_y'] ?? null,
+            'zone_point_4_x' => $validated['zone_point_4_x'] ?? null,
+            'zone_point_4_y' => $validated['zone_point_4_y'] ?? null,
+            'parking_spots_count' => $validated['parking_spots_count'],
         ]);
 
         return redirect()->route('devices.show', $device->id);

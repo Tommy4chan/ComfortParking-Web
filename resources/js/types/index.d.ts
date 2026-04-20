@@ -39,7 +39,7 @@ export interface User {
     two_factor_enabled?: boolean;
     created_at: string;
     updated_at: string;
-    [key: string]: unknown; // This allows for additional properties...
+    [key: string]: unknown;
 }
 
 export interface ParkingZone {
@@ -52,7 +52,7 @@ export interface ParkingZone {
     used_spots: number;
     available_spots: number;
     last_reported_at: string | null;
-    devices: ?Device[];
+    devices?: Device[];
 }
 
 export interface Device {
@@ -61,6 +61,7 @@ export interface Device {
     total_parking_spots: number;
     used_parking_spots: number;
     available_parking_spots: number;
+    parking_spots_count: number | null;
     battery_voltage: number;
     status: 'online' | 'warning' | 'offline';
     hash: string;
@@ -78,7 +79,14 @@ export interface Device {
     last_processed_image_path: string | null;
     last_processed_image_url: string | null;
     child_devices?: ChildDevice[];
-    parking_spots?: ParkingSpot[];
+    zone_point_1_x: number | null;
+    zone_point_1_y: number | null;
+    zone_point_2_x: number | null;
+    zone_point_2_y: number | null;
+    zone_point_3_x: number | null;
+    zone_point_3_y: number | null;
+    zone_point_4_x: number | null;
+    zone_point_4_y: number | null;
 }
 
 export interface ChildDevice {
@@ -88,24 +96,8 @@ export interface ChildDevice {
     battery_voltage: number;
     is_spot_used: boolean;
     status: 'online' | 'warning' | 'offline';
-    parking_spot_id: number | null;
-    parking_spot?: ParkingSpot;
     hash: string;
     last_reported_at: string | null;
-}
-
-export interface ParkingSpot {
-    id: number,
-    device_id: number,
-    device?: Device;
-    index: number,
-    is_used: boolean,
-    point_1_x: number,
-    point_1_y: number,
-    point_2_x: number,
-    point_2_y: number,
-    point_3_x: number,
-    point_3_y: number,
-    point_4_x: number,
-    point_4_y: number,
+    position_x: number | null;
+    position_y: number | null;
 }

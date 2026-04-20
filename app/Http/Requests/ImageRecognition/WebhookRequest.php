@@ -22,10 +22,23 @@ class WebhookRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'results' => 'required|array|min:1',
-            'results.*.parking_spot_id' => 'required|integer|exists:parking_spots,id',
-            'results.*.is_used' => 'required|boolean',
+            'device_id' => 'required|integer|exists:devices,id',
+            'used_parking_spots' => 'required|integer|min:0',
             'processed_image_base64' => 'nullable|string',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'device_id.required' => 'Device ID is required.',
+            'device_id.exists' => 'The specified device does not exist.',
+            'used_parking_spots.required' => 'Used parking spots count is required.',
         ];
     }
 }

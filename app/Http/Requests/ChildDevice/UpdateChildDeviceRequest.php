@@ -22,19 +22,8 @@ class UpdateChildDeviceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'parking_spot_id' => 'nullable|exists:parking_spots,id',
+            'position_x' => 'nullable|integer|min:0',
+            'position_y' => 'nullable|integer|min:0',
         ];
-    }
-
-    /**
-     * Prepare the data for validation.
-     */
-    protected function prepareForValidation(): void
-    {
-        if ($this->parking_spot_id === 'none') {
-            $this->merge([
-                'parking_spot_id' => null,
-            ]);
-        }
     }
 }

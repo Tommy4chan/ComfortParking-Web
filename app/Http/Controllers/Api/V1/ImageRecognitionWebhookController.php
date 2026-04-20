@@ -4,70 +4,45 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ImageRecognition\WebhookRequest;
-use App\Models\ParkingSpot;
+use App\Models\Device;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class ImageRecognitionWebhookController extends Controller
 {
-
     public function handle(WebhookRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $results = $validated['results'];
 
         try {
-            DB::transaction(function () use ($results, $request, $validated) {
-                $device = null;
+            $device = Device::findOrFail($validated['device_id']);
 
-                foreach ($results as $result) {
-                    $parkingSpotId = $result['parking_spot_id'];
+            $device->used_parking_spots = $validated['used_parking_spots'];
 
-                    $parkingSpot = ParkingSpot::with('childDevices')->find($parkingSpotId);
+            if (! empty($validated['processed_image_base64'])) {
+                $base64Image = $validated['processed_image_base64'];
+                $timestamp = now()->timestamp;
 
-                    if (!$parkingSpot) {
-                        Log::warning('Parking spot not found in webhook results', [
-                            'parking_spot_id' => $parkingSpotId,
-                        ]);
-                        continue;
-                    }
+                $imageContent = base64_decode($base64Image);
 
-                    if (!$device) {
-                        $device = $parkingSpot->device;
-                    }
+                $filename = sprintf(
+                    'device-images/%s/processed_%s.jpg',
+                    $device->id,
+                    $timestamp
+                );
 
-                    $parkingSpot->is_used = $result['is_used'];
-                    $parkingSpot->save();
+                // Delete old processed image if exists
+                if ($device->last_processed_image_path && Storage::disk('public')->exists($device->last_processed_image_path)) {
+                    Storage::disk('public')->delete($device->last_processed_image_path);
                 }
 
-                if ($device && !empty($validated['processed_image_base64'])) {
-                    $base64Image = $validated['processed_image_base64'];
-                    $timestamp = now()->timestamp;
-                    
-                    $imageContent = base64_decode($base64Image);
-                    
-                    $extension = 'jpg';
+                Storage::disk('public')->put($filename, $imageContent);
 
-                    $filename = sprintf(
-                        'device-images/%s/processed_%s.%s',
-                        $device->id,
-                        $timestamp,
-                        $extension
-                    );
+                $device->last_processed_image_path = $filename;
+            }
 
-                    // Delete old processed image if exists
-                    if ($device->last_processed_image_path && Storage::disk('public')->exists($device->last_processed_image_path)) {
-                        Storage::disk('public')->delete($device->last_processed_image_path);
-                    }
-
-                    Storage::disk('public')->put($filename, $imageContent);
-
-                    $device->last_processed_image_path = $filename;
-                    $device->save();
-                }
-            });
+            $device->save();
 
             return response()->json([
                 'success' => true,

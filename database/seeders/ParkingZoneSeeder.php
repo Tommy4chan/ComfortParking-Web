@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Device;
-use App\Models\ParkingSpot;
+use App\Models\ChildDevice;
 use App\Models\ParkingZone;
 use Clickbar\Magellan\Data\Geometries\Point;
 use Illuminate\Database\Seeder;
@@ -117,11 +117,16 @@ class ParkingZoneSeeder extends Seeder
         }
     }
 
+    private static $globalDeviceIndex = 0;
+
     /**
      * Create a device with parking spots
      */
     private function createDevice(ParkingZone $parkingZone, int $index, float $baseLat, float $baseLng): void
     {
+        self::$globalDeviceIndex++;
+        $idx = self::$globalDeviceIndex;
+
         // Slightly offset device location from zone center
         $latOffset = ($index - 1) * 0.0005;
         $lngOffset = ($index - 1) * 0.0005;
@@ -129,29 +134,63 @@ class ParkingZoneSeeder extends Seeder
         $spotsCount = rand(4, 8);
         $usedSpots = rand(0, $spotsCount);
 
+        // By default, perfect health and recent heartbeat
+        $battery = rand(3700, 4200);
+        $reportedAt = now()->subMinutes(rand(1, 20));
+
+        // Inject intentional errors for simulation
+        if ($idx === 3) {
+            // Offline
+            $reportedAt = now()->subHours(rand(3, 10));
+        } elseif ($idx === 7) {
+            // Low battery
+            $battery = rand(3100, 3350);
+        } elseif ($idx === 14) {
+            // Missing heartbeat (warning)
+            $reportedAt = now()->subMinutes(rand(70, 110));
+        }
+
         $device = Device::create([
             'title' => $parkingZone->title . ' - Device ' . $index,
             'location' => Point::makeGeodetic($baseLat + $latOffset, $baseLng + $lngOffset),
-            'battery_voltage' => rand(3500, 4200), // 3500mV to 4200mV (3.5V to 4.2V)
+            'battery_voltage' => $battery,
             'parking_zone_id' => $parkingZone->id,
-            'last_reported_at' => now()->subMinutes(rand(1, 120)),
+            'last_reported_at' => $reportedAt,
             'hash' => bin2hex(random_bytes(16)),
+            'parking_spots_count' => $spotsCount,
+            'used_parking_spots' => $usedSpots,
+            'zone_point_1_x' => rand(0, 100),
+            'zone_point_1_y' => rand(0, 100),
+            'zone_point_2_x' => rand(100, 200),
+            'zone_point_2_y' => rand(0, 100),
+            'zone_point_3_x' => rand(100, 200),
+            'zone_point_3_y' => rand(100, 200),
+            'zone_point_4_x' => rand(0, 100),
+            'zone_point_4_y' => rand(100, 200),
         ]);
 
-        // Create parking spots
-        for ($spot = 0; $spot < $spotsCount; $spot++) {
-            ParkingSpot::create([
+        // Create some child devices for this device
+        $childDevicesCount = rand(1, 3); // Make sure there's at least 1 for display
+        for ($child = 0; $child < $childDevicesCount; $child++) {
+            
+            $childBattery = rand(3700, 4200);
+            $childReportedAt = now()->subMinutes(rand(1, 20));
+
+            // Inject 1 or 2 child errors randomly across the whole DB
+            if (rand(1, 30) === 1) {
+                $childReportedAt = now()->subHours(5); // Offline child
+            } elseif (rand(1, 30) === 2) {
+                $childBattery = rand(3100, 3350); // Low battery child
+            }
+
+            ChildDevice::create([
                 'device_id' => $device->id,
-                'index' => $spot,
-                'is_used' => $spot < $usedSpots,
-                'point_1_x' => rand(0, 100),
-                'point_1_y' => rand(0, 100),
-                'point_2_x' => rand(100, 200),
-                'point_2_y' => rand(0, 100),
-                'point_3_x' => rand(100, 200),
-                'point_3_y' => rand(100, 200),
-                'point_4_x' => rand(0, 100),
-                'point_4_y' => rand(100, 200),
+                'battery_voltage' => $childBattery,
+                'is_spot_used' => (bool) rand(0, 1),
+                'hash' => bin2hex(random_bytes(16)),
+                'last_reported_at' => $childReportedAt,
+                'position_x' => rand(0, 200),
+                'position_y' => rand(0, 200),
             ]);
         }
     }

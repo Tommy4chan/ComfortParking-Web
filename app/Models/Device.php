@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Utils\DeviceUtils;
 use Clickbar\Magellan\Data\Geometries\Point;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Utils\DeviceUtils;
 
 class Device extends Model
 {
@@ -22,8 +22,17 @@ class Device extends Model
         'hash',
         'last_image_path',
         'last_processed_image_path',
+        'zone_point_1_x',
+        'zone_point_1_y',
+        'zone_point_2_x',
+        'zone_point_2_y',
+        'zone_point_3_x',
+        'zone_point_3_y',
+        'zone_point_4_x',
+        'zone_point_4_y',
+        'parking_spots_count',
     ];
-    
+
     protected $casts = [
         'location' => Point::class,
         'last_reported_at' => 'datetime',
@@ -33,7 +42,6 @@ class Device extends Model
         'latitude',
         'longitude',
         'total_parking_spots',
-        'used_parking_spots',
         'available_parking_spots',
         'status',
         'last_image_url',
@@ -57,21 +65,14 @@ class Device extends Model
     protected function totalParkingSpots(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->parkingSpots->count(),
+            get: fn () => $this->parking_spots_count ?? 0,
         );
     }
 
-    protected function usedParkingSpots(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => $this->parkingSpots->where('is_used', true)->count(),
-        );
-    }
-    
     protected function availableParkingSpots(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->total_parking_spots - $this->used_parking_spots,
+            get: fn () => max(0, ($this->parking_spots_count ?? 0) - ($this->used_parking_spots ?? 0)),
         );
     }
 
@@ -85,8 +86,8 @@ class Device extends Model
     protected function lastImageUrl(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->last_image_path 
-                ? asset('storage/' . $this->last_image_path)
+            get: fn () => $this->last_image_path
+                ? asset('storage/'.$this->last_image_path)
                 : null
         );
     }
@@ -94,24 +95,19 @@ class Device extends Model
     protected function lastProcessedImageUrl(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->last_processed_image_path 
-                ? asset('storage/' . $this->last_processed_image_path)
+            get: fn () => $this->last_processed_image_path
+                ? asset('storage/'.$this->last_processed_image_path)
                 : null
         );
     }
 
-    public function parkingZone()
+    public function parkingZone(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(ParkingZone::class);
     }
 
-    public function childDevices()
+    public function childDevices(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(ChildDevice::class)->orderBy('id');
-    }
-    
-    public function parkingSpots()
-    {
-        return $this->hasMany(ParkingSpot::class)->orderBy('index');
     }
 }

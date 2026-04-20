@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use App\Utils\DeviceUtils;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
-use App\Utils\DeviceUtils;
 
 class ChildDevice extends Model
 {
@@ -12,9 +12,10 @@ class ChildDevice extends Model
         'device_id',
         'battery_voltage',
         'is_spot_used',
-        'parking_spot_id',
         'last_reported_at',
         'hash',
+        'position_x',
+        'position_y',
     ];
 
     protected $casts = [
@@ -33,14 +34,8 @@ class ChildDevice extends Model
         );
     }
 
-    public function device()
+    public function device(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Device::class);
-    }
-
-    
-    public function parkingSpot()
-    {
-        return $this->belongsTo(ParkingSpot::class);
     }
 }

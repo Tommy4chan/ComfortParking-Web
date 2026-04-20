@@ -25,7 +25,7 @@ export default function Edit({ device }: { device: Device }) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Edit Device" />
             <div className="flex flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
-                <div className="w-full max-w-lg">
+                <div className="w-full max-w-7xl">
                     <FormTemplate
                         device={device}
                         parkingZone={device.parking_zone!}

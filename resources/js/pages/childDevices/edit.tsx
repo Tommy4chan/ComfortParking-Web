@@ -30,11 +30,10 @@ export default function Edit({ childDevice }: { childDevice: ChildDevice }) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Edit Child Device" />
             <div className="flex flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
-                <div className="w-full max-w-lg">
+                <div className="w-full max-w-7xl">
                     <FormTemplate
                         childDevice={childDevice}
                         device={childDevice.device!}
-                        parkingSpots={childDevice.device?.parking_spots}
                         {...update(childDevice.id)}
                     />
                 </div>

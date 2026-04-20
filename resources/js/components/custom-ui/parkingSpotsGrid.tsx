@@ -8,9 +8,9 @@ const ParkingSpotsGrid = ({ totalSpots, usedSpots, availableSpots }: ParkingSpot
     const occupancyRate = totalSpots > 0 ? Math.round((usedSpots / totalSpots) * 100) : 0;
 
     const getTextColor = () => {
-        if (occupancyRate < 50) return "text-green-600";
-        if (occupancyRate < 80) return "text-yellow-600";
-        return "text-red-600";
+        if (availableSpots === 0) return "text-rose-500";
+        if (occupancyRate < 50) return "text-emerald-500";
+        return "text-amber-500";
     }
 
     return (

@@ -37,7 +37,7 @@ class ChildDeviceController extends Controller
 
     public function edit(ChildDevice $childDevice)
     {
-        $childDevice->load(['device.parkingZone', 'device.parkingSpots']);
+        $childDevice->load(['device.parkingZone']);
 
         return Inertia::render('childDevices/edit', [
             'childDevice' => $childDevice,
