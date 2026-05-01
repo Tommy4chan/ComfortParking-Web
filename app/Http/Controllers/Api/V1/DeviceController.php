@@ -130,4 +130,46 @@ class DeviceController extends Controller
             ], 500);
         }
     }
+
+    public function syncSpots(\App\Http\Requests\Device\SyncSpotsRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+        $device = Device::where('hash', $validated['hash'])->firstOrFail();
+
+        DB::beginTransaction();
+        try {
+            $device->update([
+                'battery_voltage' => $validated['battery_voltage'],
+                'used_parking_spots' => $validated['used_parking_spots'],
+                'last_reported_at' => now(),
+            ]);
+
+            DeviceTelemetrySnapshot::create([
+                'device_id' => $device->id,
+                'parking_zone_id' => $device->parking_zone_id,
+                'recorded_at' => now(),
+                'used_spots' => $validated['used_parking_spots'],
+                'total_spots' => $device->parking_spots_count,
+                'battery_voltage_mv' => $validated['battery_voltage'],
+                'status' => $device->status,
+                'response_time_ms' => null,
+                'online_child_count' => 0,
+                'offline_child_count' => 0,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Sync failed'
+            ], 500);
+        }
+    }
 }

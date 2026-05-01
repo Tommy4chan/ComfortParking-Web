@@ -75,6 +75,7 @@ export interface Device {
     };
     latitude?: number;
     longitude?: number;
+    image_recognition_enabled?: boolean;
     last_reported_at: string | null;
     last_image_path: string | null;
     last_image_url: string | null;

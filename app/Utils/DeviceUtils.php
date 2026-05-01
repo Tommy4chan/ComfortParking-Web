@@ -25,15 +25,15 @@ class DeviceUtils
 
         $minutesSinceReport = now()->diffInMinutes($lastReportedAt);
         
-        if ($minutesSinceReport < -60) {
+        if ($minutesSinceReport > 60) {
             return 'offline';
         }
         
-        if ($batteryVoltage < 3000) {
-            return 'low_battery';
+        if ($batteryVoltage !== null && $batteryVoltage < 3100) {
+            return 'warning';
         }
         
-        if ($minutesSinceReport < -30) {
+        if ($minutesSinceReport > 30) {
             return 'warning';
         }
         

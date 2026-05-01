@@ -20,6 +20,7 @@ class Device extends Model
         'parking_zone_id',
         'last_reported_at',
         'hash',
+        'image_recognition_enabled',
         'last_image_path',
         'last_processed_image_path',
         'zone_point_1_x',
@@ -36,6 +37,7 @@ class Device extends Model
     protected $casts = [
         'location' => Point::class,
         'last_reported_at' => 'datetime',
+        'image_recognition_enabled' => 'boolean',
     ];
 
     protected $appends = [

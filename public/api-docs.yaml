@@ -1,0 +1,120 @@
+openapi: 3.0.0
+info:
+  title: ComfortParking Device Cloud API
+  description: >
+    Welcome to the ComfortParking Device Cloud API. This API provides synchronization endpoints for our IoT parking sensors and gateway devices to report real-time occupancy and battery telemetry.
+
+
+    There are two primary ways to sync device data depending on your hardware type:
+
+    - **Gateway Sync:** Used by master devices that monitor child node sensors.
+
+    - **Simple Spots Sync:** Used by standalone sensors reporting total occupied spots.
+  version: 1.0.0
+servers:
+  - url: /api/v1
+    description: Current Environment
+paths:
+  /devices/sync:
+    post:
+      summary: Gateway Device Full Sync
+      description: >
+        Submit a full sync payload from a master/gateway device. This endpoint accepts battery voltage, child device statuses, and optionally an image for server-side AI parking spot recognition.
+        
+        **Note:** If submitting an image, you must use `multipart/form-data`.
+      operationId: syncDevice
+      tags:
+        - Device Synchronization
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - hash
+                - battery_voltage
+              properties:
+                hash:
+                  type: string
+                  description: The unique 32-character authentication hash of the master device.
+                  example: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+                battery_voltage:
+                  type: integer
+                  description: Master device battery voltage in millivolts (mV). Typically between 3000 and 4200 for 18650 Li-ion cells.
+                  example: 3850
+                image:
+                  type: string
+                  format: binary
+                  description: Optional picture for AI recognition (JPEG/PNG up to 10MB).
+                "children[0][hash]":
+                  type: string
+                  description: The 32-character hash of the first child device.
+                "children[0][battery_voltage]":
+                  type: integer
+                  description: Battery voltage (mV) of the first child device.
+                "children[0][is_spot_used]":
+                  type: boolean
+                  description: True if the parking spot is occupied, false otherwise.
+      responses:
+        '200':
+          description: Sync completed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '422':
+          description: Validation error. Check the device hash or parameter formats.
+        '500':
+          description: Internal server error during sync processing.
+
+  /devices/sync-spots:
+    post:
+      summary: Simple Occupancy Sync
+      description: >
+        This is a lightweight endpoint designed for standalone devices that only need to report their battery voltage and the total number of occupied parking spots. It uses standard JSON payloads.
+      operationId: syncSpots
+      tags:
+        - Device Synchronization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - hash
+                - battery_voltage
+                - used_parking_spots
+              properties:
+                hash:
+                  type: string
+                  description: The unique 32-character authentication hash of the standalone device.
+                  example: "x1y2z3a4b5c6d7e8f9g0h1i2j3k4l5m6"
+                battery_voltage:
+                  type: integer
+                  description: Device battery voltage in millivolts (mV).
+                  example: 3910
+                used_parking_spots:
+                  type: integer
+                  description: The total number of parking spots currently occupied and monitored by this device.
+                  example: 2
+      responses:
+        '200':
+          description: Sync completed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '422':
+          description: Validation error (e.g. invalid hash or missing fields).
+        '500':
+          description: Internal server error.

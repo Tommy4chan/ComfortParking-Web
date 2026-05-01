@@ -259,55 +259,58 @@ export default function Dashboard() {
                         </h1>
                     </div>
 
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center">
-                        {/* Global Time Range Picker */}
-                        <div className="flex items-center gap-1 bg-muted/40 rounded-xl p-1.5 border border-white/5 backdrop-blur-md shadow-inner">
-                            <button
-                                onClick={() => setRange('24h')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-mono font-bold tracking-tight transition-all duration-200 ${currentRange === '24h' ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(var(--primary),0.3)] scale-105' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}
-                            >
-                                24 HOURS
-                            </button>
-                            <button
-                                onClick={() => setRange('7d')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-mono font-bold tracking-tight transition-all duration-200 ${currentRange === '7d' ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(var(--primary),0.3)] scale-105' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}
-                            >
-                                7 DAYS
-                            </button>
-                        </div>
-
+                    <div className="flex flex-col gap-4 md:flex-row md:items-end">
                         <div className="flex items-center gap-6 rounded-2xl border bg-card p-4 shadow-sm">
-                        <div className="flex flex-col items-end">
-                            <span className="mb-1 font-mono text-[10px] tracking-widest text-muted-foreground/80 uppercase">
-                                Network
-                            </span>
-                            <div className="flex items-baseline gap-1">
-                                <span className="font-mono text-3xl font-medium text-white">
-                                    {healthStats.find(
-                                        (s) => s.name === 'Online',
-                                    )?.value || 0}
+                            <div className="flex flex-col items-start gap-1 justify-center mr-4 pr-6 border-r border-white/10">
+                                <span className="font-mono text-xs tracking-widest text-muted-foreground/80 uppercase">
+                                    Timeframe
                                 </span>
-                                <span className="font-mono text-sm text-muted-foreground">
-                                    /{' '}
-                                    {healthStats.reduce(
-                                        (acc, curr) => acc + curr.value,
-                                        0,
-                                    )}
+                                <div className="flex items-center bg-muted/40 rounded-lg p-1 border border-white/5 backdrop-blur-md">
+                                    <button
+                                        onClick={() => setRange('24h')}
+                                        className={`px-4 py-1.5 rounded-md text-xs font-mono font-bold tracking-tight transition-all duration-200 ${currentRange === '24h' ? 'bg-primary text-primary-foreground shadow-[0_0_10px_rgba(var(--primary),0.3)]' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}
+                                    >
+                                        24H
+                                    </button>
+                                    <button
+                                        onClick={() => setRange('7d')}
+                                        className={`px-4 py-1.5 rounded-md text-xs font-mono font-bold tracking-tight transition-all duration-200 ${currentRange === '7d' ? 'bg-primary text-primary-foreground shadow-[0_0_10px_rgba(var(--primary),0.3)]' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}
+                                    >
+                                        7D
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-end">
+                                <span className="mb-1 font-mono text-[10px] tracking-widest text-muted-foreground/80 uppercase">
+                                    Network
+                                </span>
+                                <div className="flex items-baseline gap-1">
+                                    <span className="font-mono text-3xl font-medium text-white">
+                                        {healthStats.find(
+                                            (s) => s.name === 'Online',
+                                        )?.value || 0}
+                                    </span>
+                                    <span className="font-mono text-sm text-muted-foreground">
+                                        /{' '}
+                                        {healthStats.reduce(
+                                            (acc, curr) => acc + curr.value,
+                                            0,
+                                        )}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="h-12 w-px bg-white/10" />
+                            <div className="flex flex-col items-end">
+                                <span className="mb-1 font-mono text-[10px] tracking-widest text-muted-foreground/80 uppercase">
+                                    Active Alerts
+                                </span>
+                                <span className="font-mono text-3xl font-medium text-rose-400 drop-shadow-[0_0_8px_rgba(251,113,133,0.5)]">
+                                    {errorCount + warningCount}
                                 </span>
                             </div>
                         </div>
-                        <div className="h-12 w-px bg-white/10" />
-                        <div className="flex flex-col items-end">
-                            <span className="mb-1 font-mono text-[10px] tracking-widest text-muted-foreground/80 uppercase">
-                                Active Alerts
-                            </span>
-                            <span className="font-mono text-3xl font-medium text-rose-400 drop-shadow-[0_0_8px_rgba(251,113,133,0.5)]">
-                                {errorCount + warningCount}
-                            </span>
-                        </div>
                     </div>
-                </div>
-            </motion.div>
+                </motion.div>
 
                 {/* Charts Grid */}
                 <div className="grid gap-6 xl:grid-cols-3">

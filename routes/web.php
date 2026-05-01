@@ -13,6 +13,10 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
+Route::get('/api-docs', function () {
+    return view('api-docs');
+})->name('api-docs');
+
 use App\Http\Controllers\DashboardController;
 
 Route::middleware(['auth', 'verified'])->group(function () {

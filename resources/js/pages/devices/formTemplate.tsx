@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import { Device, ParkingZone } from '@/types';
 import { Form } from '@inertiajs/react';
 import { Crosshair, MapPin, RefreshCcw } from 'lucide-react';
@@ -32,6 +33,10 @@ const FormTemplate = ({
     method,
 }: FormTemplateProps) => {
     const isEditing = !!device;
+
+    const [isImageRecEnabled, setIsImageRecEnabled] = useState(
+        device?.image_recognition_enabled ?? false,
+    );
 
     const [points, setPoints] = useState<PointDef[]>([
         {
@@ -123,6 +128,12 @@ const FormTemplate = ({
                                 type="hidden"
                                 name="parking_zone_id"
                                 value={parkingZone.id}
+                            />
+                            
+                            <input
+                                type="hidden"
+                                name="image_recognition_enabled"
+                                value={isImageRecEnabled ? '1' : '0'}
                             />
 
                             <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
@@ -256,148 +267,172 @@ const FormTemplate = ({
                                                 }
                                             />
                                         </div>
+
+                                        <div className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+                                            <div className="space-y-0.5">
+                                                <Label htmlFor="image_recognition_enabled">
+                                                    Image Recognition
+                                                </Label>
+                                                <p className="text-sm text-muted-foreground">
+                                                    Enable server-side CV spot detection.
+                                                </p>
+                                            </div>
+                                            <Switch
+                                                id="image_recognition_enabled"
+                                                checked={isImageRecEnabled}
+                                                onCheckedChange={setIsImageRecEnabled}
+                                            />
+                                            <InputError
+                                                message={
+                                                    errors.image_recognition_enabled
+                                                }
+                                            />
+                                        </div>
                                     </div>
 
-                                    {/* Manual Coordinates Input */}
-                                    <div className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
-                                        <div className="flex items-center justify-between border-b pb-2">
-                                            <h3 className="flex items-center gap-2 text-lg font-semibold">
-                                                <Crosshair className="h-5 w-5" />
-                                                Coordinate Values
-                                            </h3>
-                                        </div>
-                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
-                                            {points.map((point) => (
-                                                <div
-                                                    key={point.id}
-                                                    className="space-y-2 rounded-lg border bg-muted/20 p-3"
-                                                >
-                                                    <Label className="flex items-center gap-2 text-sm font-medium">
-                                                        <span
-                                                            className={`h-3 w-3 rounded-full ${point.color}`}
-                                                        ></span>
-                                                        {point.label}
-                                                    </Label>
-                                                    <div className="mt-1 grid grid-cols-2 gap-3">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-mono text-xs text-muted-foreground">
-                                                                X
-                                                            </span>
-                                                            <Input
-                                                                type="number"
-                                                                name={`zone_point_${point.id}_x`}
-                                                                value={
-                                                                    point.x ??
-                                                                    ''
-                                                                }
-                                                                onChange={(e) =>
-                                                                    handleInputChange(
-                                                                        point.id,
-                                                                        'x',
-                                                                        e.target
-                                                                            .value,
-                                                                    )
-                                                                }
-                                                                placeholder="-"
-                                                                min={0}
-                                                                className={`h-8 ${(errors as Record<string, string>)[`zone_point_${point.id}_x`] ? 'border-destructive' : ''}`}
-                                                            />
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-mono text-xs text-muted-foreground">
-                                                                Y
-                                                            </span>
-                                                            <Input
-                                                                type="number"
-                                                                name={`zone_point_${point.id}_y`}
-                                                                value={
-                                                                    point.y ??
-                                                                    ''
-                                                                }
-                                                                onChange={(e) =>
-                                                                    handleInputChange(
-                                                                        point.id,
-                                                                        'y',
-                                                                        e.target
-                                                                            .value,
-                                                                    )
-                                                                }
-                                                                placeholder="-"
-                                                                min={0}
-                                                                className={`h-8 ${(errors as Record<string, string>)[`zone_point_${point.id}_y`] ? 'border-destructive' : ''}`}
-                                                            />
+                                    {isImageRecEnabled && (
+                                        <div className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
+                                            <div className="flex items-center justify-between border-b pb-2">
+                                                <h3 className="flex items-center gap-2 text-lg font-semibold">
+                                                    <Crosshair className="h-5 w-5" />
+                                                    Coordinate Values
+                                                </h3>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                                                {points.map((point) => (
+                                                    <div
+                                                        key={point.id}
+                                                        className="space-y-2 rounded-lg border bg-muted/20 p-3"
+                                                    >
+                                                        <Label className="flex items-center gap-2 text-sm font-medium">
+                                                            <span
+                                                                className={`h-3 w-3 rounded-full ${point.color}`}
+                                                            ></span>
+                                                            {point.label}
+                                                        </Label>
+                                                        <div className="mt-1 grid grid-cols-2 gap-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-mono text-xs text-muted-foreground">
+                                                                    X
+                                                                </span>
+                                                                <Input
+                                                                    type="number"
+                                                                    name={`zone_point_${point.id}_x`}
+                                                                    value={
+                                                                        point.x ??
+                                                                        ''
+                                                                    }
+                                                                    onChange={(e) =>
+                                                                        handleInputChange(
+                                                                            point.id,
+                                                                            'x',
+                                                                            e.target
+                                                                                .value,
+                                                                        )
+                                                                    }
+                                                                    placeholder="-"
+                                                                    min={0}
+                                                                    className={`h-8 ${(errors as Record<string, string>)[`zone_point_${point.id}_x`] ? 'border-destructive' : ''}`}
+                                                                />
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-mono text-xs text-muted-foreground">
+                                                                    Y
+                                                                </span>
+                                                                <Input
+                                                                    type="number"
+                                                                    name={`zone_point_${point.id}_y`}
+                                                                    value={
+                                                                        point.y ??
+                                                                        ''
+                                                                    }
+                                                                    onChange={(e) =>
+                                                                        handleInputChange(
+                                                                            point.id,
+                                                                            'y',
+                                                                            e.target
+                                                                                .value,
+                                                                        )
+                                                                    }
+                                                                    placeholder="-"
+                                                                    min={0}
+                                                                    className={`h-8 ${(errors as Record<string, string>)[`zone_point_${point.id}_y`] ? 'border-destructive' : ''}`}
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
 
                                 {/* Right Column: Visual Editor */}
-                                <div className="flex h-full flex-col xl:col-span-8">
-                                    <div className="flex h-full flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
-                                        <div className="border-b bg-muted/30 p-4">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <h3 className="flex items-center gap-2 text-lg font-semibold">
-                                                        Visual Zone Mapper
-                                                    </h3>
-                                                    <p className="mt-1 text-sm text-muted-foreground">
-                                                        Click on the image to
-                                                        place the points
-                                                        sequentially and form
-                                                        the monitoring zone.
-                                                    </p>
-                                                </div>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={handleResetPoints}
-                                                    className="shrink-0"
-                                                >
-                                                    <RefreshCcw className="mr-2 h-4 w-4" />
-                                                    Reset Points
-                                                </Button>
-                                            </div>
-                                        </div>
-                                        <div className="relative flex-grow bg-muted/10 p-4">
-                                            {device?.last_image_url ? (
-                                                <ImagePointEditor
-                                                    imageUrl={
-                                                        device.last_image_url
-                                                    }
-                                                    points={points}
-                                                    onChange={handlePointChange}
-                                                    onReset={handleResetPoints}
-                                                />
-                                            ) : (
-                                                <div className="flex h-full min-h-[400px] items-center justify-center rounded-lg border-2 border-dashed bg-background">
-                                                    <div className="max-w-sm space-y-2 px-4 text-center">
-                                                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                                                            <Crosshair className="h-6 w-6 text-muted-foreground" />
-                                                        </div>
-                                                        <h4 className="font-medium">
-                                                            No Image Available
-                                                        </h4>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            The visual editor
-                                                            will appear here
-                                                            once the device
-                                                            uploads its first
-                                                            camera capture. You
-                                                            can input
-                                                            coordinates manually
-                                                            on the left in the
-                                                            meantime.
+                                {isImageRecEnabled && (
+                                    <div className="flex h-full flex-col xl:col-span-8">
+                                        <div className="flex h-full flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
+                                            <div className="border-b bg-muted/30 p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <h3 className="flex items-center gap-2 text-lg font-semibold">
+                                                            Visual Zone Mapper
+                                                        </h3>
+                                                        <p className="mt-1 text-sm text-muted-foreground">
+                                                            Click on the image to
+                                                            place the points
+                                                            sequentially and form
+                                                            the monitoring zone.
                                                         </p>
                                                     </div>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={handleResetPoints}
+                                                        className="shrink-0"
+                                                    >
+                                                        <RefreshCcw className="mr-2 h-4 w-4" />
+                                                        Reset Points
+                                                    </Button>
                                                 </div>
-                                            )}
+                                            </div>
+                                            <div className="relative flex-grow bg-muted/10 p-4">
+                                                {device?.last_image_url ? (
+                                                    <ImagePointEditor
+                                                        imageUrl={
+                                                            device.last_image_url
+                                                        }
+                                                        points={points}
+                                                        onChange={handlePointChange}
+                                                        onReset={handleResetPoints}
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full min-h-[400px] items-center justify-center rounded-lg border-2 border-dashed bg-background">
+                                                        <div className="max-w-sm space-y-2 px-4 text-center">
+                                                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                                                                <Crosshair className="h-6 w-6 text-muted-foreground" />
+                                                            </div>
+                                                            <h4 className="font-medium">
+                                                                No Image Available
+                                                            </h4>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                The visual editor
+                                                                will appear here
+                                                                once the device
+                                                                uploads its first
+                                                                camera capture. You
+                                                                can input
+                                                                coordinates manually
+                                                                on the left in the
+                                                                meantime.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
 
                             <div className="mt-4 flex items-center justify-end gap-4 border-t pt-6">

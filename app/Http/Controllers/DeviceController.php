@@ -60,6 +60,7 @@ class DeviceController extends Controller
             'zone_point_4_x' => $validated['zone_point_4_x'] ?? null,
             'zone_point_4_y' => $validated['zone_point_4_y'] ?? null,
             'parking_spots_count' => $validated['parking_spots_count'] ?? null,
+            'image_recognition_enabled' => $request->has('image_recognition_enabled') ? filter_var($request->input('image_recognition_enabled'), FILTER_VALIDATE_BOOLEAN) : false,
         ]);
 
         return redirect()->route('devices.show', $device->id);
@@ -105,6 +106,7 @@ class DeviceController extends Controller
             'zone_point_4_x' => $validated['zone_point_4_x'] ?? null,
             'zone_point_4_y' => $validated['zone_point_4_y'] ?? null,
             'parking_spots_count' => $validated['parking_spots_count'],
+            'image_recognition_enabled' => $request->has('image_recognition_enabled') ? filter_var($request->input('image_recognition_enabled'), FILTER_VALIDATE_BOOLEAN) : false,
         ]);
 
         return redirect()->route('devices.show', $device->id);
