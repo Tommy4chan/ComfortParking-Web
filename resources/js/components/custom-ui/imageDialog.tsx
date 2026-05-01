@@ -1,4 +1,9 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 interface ImageDialogProps {
     open: boolean;
@@ -7,10 +12,15 @@ interface ImageDialogProps {
     imageUrl: string | null;
 }
 
-export default function ImageDialog({ open, onOpenChange, title, imageUrl }: ImageDialogProps) {
+export default function ImageDialog({
+    open,
+    onOpenChange,
+    title,
+    imageUrl,
+}: ImageDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[90vw] w-full sm:max-w-[90vw]">
+            <DialogContent className="w-full max-w-[90vw] sm:max-w-[90vw]">
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
                 </DialogHeader>
@@ -19,7 +29,7 @@ export default function ImageDialog({ open, onOpenChange, title, imageUrl }: Ima
                         <img
                             src={imageUrl}
                             alt={title}
-                            className="w-auto h-auto object-contain max-h-[85vh]"
+                            className="h-auto max-h-[85vh] w-auto object-contain"
                         />
                     )}
                 </div>

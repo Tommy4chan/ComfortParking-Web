@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ChildDevice;
 use App\Models\Device;
 use App\Models\ParkingZone;
-use App\Models\SystemTelemetry;
+use App\Models\DeviceTelemetryHourly;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -83,19 +83,27 @@ class DashboardController extends Controller
         $totalSpots = $zones->sum('total_spots');
         $usedSpots = $zones->sum('used_spots');
 
-        $telemetry = SystemTelemetry::where('recorded_at', '>=', now()->subHours(24))
-            ->orderBy('recorded_at', 'asc')
+        $range = request('range', '24h');
+        
+        $hoursBack = 24;
+        if ($range === '7d') $hoursBack = 24 * 7;
+        // 30d option removed as per user request
+
+        $telemetry = DeviceTelemetryHourly::where('scope', 'system')
+            ->where('hour_bucket', '>=', now()->subHours($hoursBack))
+            ->orderBy('hour_bucket', 'asc')
             ->get()
-            ->map(function ($t) {
+            ->map(function ($t) use ($totalSpots, $range) {
+                $format = $range === '24h' ? 'H:00' : 'd M H:00';
                 return [
-                    'hour' => $t->recorded_at->format('H:00'),
-                    'usedSpots' => $t->used_spots,
-                    'freeSpots' => $t->free_spots,
-                    'online' => $t->online_devices,
-                    'warning' => $t->warning_devices,
-                    'offline' => $t->offline_devices,
-                    'arrivals' => $t->arrivals,
-                    'departures' => $t->departures,
+                    'hour' => $t->hour_bucket->format($format),
+                    'usedSpots' => round($t->avg_used_spots),
+                    'freeSpots' => max(0, $totalSpots - round($t->avg_used_spots)),
+                    'online' => round($t->online_device_minutes / 60), 
+                    'warning' => 0, 
+                    'offline' => round($t->offline_device_minutes / 60),
+                    'arrivals' => $t->total_arrivals,
+                    'departures' => $t->total_departures,
                 ];
             });
 
@@ -116,6 +124,7 @@ class DashboardController extends Controller
             ],
             'zoneOccupancyList' => $topLoadedZones->take(10), // up to 10 for bar chart
             'telemetry24h' => $telemetry,
+            'currentRange' => $range,
         ]);
     }
 

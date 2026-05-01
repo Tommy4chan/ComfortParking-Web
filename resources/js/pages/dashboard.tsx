@@ -1,12 +1,25 @@
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
-import { type BreadcrumbItem } from '@/types';
-import { Head, usePage, Link } from '@inertiajs/react';
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, CircleAlert, CircleOff, ChevronRight } from 'lucide-react';
 import { show as showDevice } from '@/routes/devices';
 import { show as showZone } from '@/routes/parking-zones';
+import { type BreadcrumbItem } from '@/types';
+import { Head, Link, usePage, router } from '@inertiajs/react';
+import {
+    Activity,
+    AlertTriangle,
+    ArrowDownRight,
+    ArrowUpRight,
+    ChevronRight,
+    CircleAlert,
+    CircleOff,
+    Cpu,
+    Map,
+    ShieldAlert,
+    Zap,
+} from 'lucide-react';
+import { motion } from 'motion/react';
 import {
     Area,
     AreaChart,
@@ -27,7 +40,11 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 type AlertSeverity = 'error' | 'warning';
-type AlertKind = 'offline' | 'low_battery' | 'heartbeat_missing' | 'signal_issue';
+type AlertKind =
+    | 'offline'
+    | 'low_battery'
+    | 'heartbeat_missing'
+    | 'signal_issue';
 
 interface DashboardAlertItem {
     id: string;
@@ -65,28 +82,51 @@ interface DashboardProps {
         arrivals: number;
         departures: number;
     }[];
+    currentRange: string;
 }
 
 export default function Dashboard() {
     const { props } = usePage();
-    const { topLoadedZones, deviceAlerts, childDeviceAlerts, healthStats, usageStats, telemetry24h } = props as unknown as DashboardProps;
+    const {
+        topLoadedZones,
+        deviceAlerts,
+        childDeviceAlerts,
+        healthStats,
+        usageStats,
+        telemetry24h,
+        currentRange,
+    } = props as unknown as DashboardProps;
 
     const allAlerts = [...deviceAlerts, ...childDeviceAlerts];
-    const errorCount = allAlerts.filter((alert) => alert.severity === 'error').length;
-    const warningCount = allAlerts.filter((alert) => alert.severity === 'warning').length;
+    const errorCount = allAlerts.filter(
+        (alert) => alert.severity === 'error',
+    ).length;
+    const warningCount = allAlerts.filter(
+        (alert) => alert.severity === 'warning',
+    ).length;
 
     const severityMeta = {
         error: {
-            label: 'Error',
+            label: 'CRITICAL',
             Icon: CircleOff,
-            className: 'border-rose-800 bg-rose-950 text-rose-200',
+            className: 'border-rose-500/30 bg-rose-500/10 text-rose-400',
         },
         warning: {
-            label: 'Warning',
+            label: 'WARNING',
             Icon: CircleAlert,
-            className: 'border-amber-800 bg-amber-950 text-amber-200',
+            className: 'border-amber-500/30 bg-amber-500/10 text-amber-400',
         },
     } as const;
+
+    // currentRange is now passed from props
+
+    const setRange = (range: string) => {
+        router.visit(dashboard().url, {
+            data: { range },
+            preserveScroll: true,
+            preserveState: true,
+        });
+    };
 
     const kindMeta = {
         offline: {
@@ -111,213 +151,602 @@ export default function Dashboard() {
         const severity = severityMeta[alert.severity];
         const kind = kindMeta[alert.kind];
 
-        const linkHref = alert.device_id 
-            ? showDevice(alert.device_id).url 
+        const linkHref = alert.device_id
+            ? showDevice(alert.device_id).url
             : '#';
 
         return (
-            <Link 
-                key={alert.id} 
+            <Link
+                key={alert.id}
                 href={linkHref}
-                className="group flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2 transition-colors hover:bg-muted/50"
+                className={`group relative flex flex-col justify-between rounded-xl border bg-card p-4 transition-all hover:border-primary/50 sm:flex-row sm:items-center shadow-sm border-l-[4px] ${alert.severity === 'error'
+                        ? 'border-l-rose-500/50 hover:border-l-rose-500'
+                        : 'border-l-amber-500/50 hover:border-l-amber-500'
+                    }`}
             >
-                <div className="min-w-0">
-                    <p className="text-sm font-medium group-hover:text-primary transition-colors">{alert.source}</p>
-                    <p className="text-muted-foreground truncate text-xs">{alert.message}</p>
+                <div className="min-w-0 pl-1">
+                    <div className="mb-1 flex items-center gap-2">
+                        <p className="text-base font-bold tracking-tight text-foreground transition-colors group-hover:text-primary">
+                            {alert.source}
+                        </p>
+                        <Badge
+                            className={`${severity.className} gap-1 rounded-sm px-1.5 py-0 font-mono text-[10px] tracking-wider uppercase`}
+                        >
+                            {severity.label}
+                        </Badge>
+                    </div>
+                    <p className="truncate text-sm text-muted-foreground/80">
+                        {alert.message}
+                    </p>
                 </div>
 
-                <div className="ml-3 flex items-center gap-2">
-                    <Badge className="border-slate-700 bg-slate-900 text-slate-200 gap-1 hidden sm:inline-flex">
-                        <kind.Icon className="size-3" />
+                <div className="mt-3 flex items-center gap-3 pl-3 sm:mt-0 sm:pl-0">
+                    <Badge
+                        variant="outline"
+                        className="gap-1.5 border-white/10 bg-black/40 font-medium text-slate-300"
+                    >
+                        <kind.Icon className="size-3.5" />
                         {kind.label}
                     </Badge>
-                    <Badge className={`${severity.className} gap-1`}>
-                        <severity.Icon className="size-3" />
-                        {severity.label}
-                    </Badge>
-                    <span className="text-muted-foreground text-xs whitespace-nowrap">{alert.since}</span>
-                    <ChevronRight className="size-4 text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <span className="font-mono text-xs whitespace-nowrap text-muted-foreground/60">
+                        {alert.since}
+                    </span>
+                    <ChevronRight className="size-5 text-muted-foreground/40 transition-colors group-hover:text-white" />
                 </div>
             </Link>
         );
     };
 
     const tooltipStyle = {
-        backgroundColor: '#09090B',
-        borderColor: '#27272A',
-        color: '#E4E4E7',
-        borderRadius: '10px',
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backdropFilter: 'blur(12px)',
+        borderColor: 'rgba(255,255,255,0.1)',
+        color: '#fff',
+        borderRadius: '12px',
+        boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5)',
+        fontFamily: 'JetBrains Mono, monospace',
+        fontSize: '12px',
+    };
+
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1,
+            },
+        },
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        show: {
+            opacity: 1,
+            y: 0,
+            transition: { type: 'spring' as const, stiffness: 300, damping: 24 },
+        },
     };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="grid gap-4 xl:grid-cols-3">
-                    <Card>
-                        <CardHeader className="space-y-3">
-                            <div className="flex items-center justify-between gap-2">
-                                <CardTitle>Parking Spots Used (24h)</CardTitle>
-                                <Badge className="border-slate-700 bg-slate-900 text-slate-300">Live trend</Badge>
-                            </div>
-                            <CardDescription>Hourly occupancy pattern for all zones combined.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="h-72 pt-0">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={telemetry24h}>
-                                    <defs>
-                                        <linearGradient id="usedSpotsGradient" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.35} />
-                                            <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid vertical={false} stroke="#27272A" />
-                                    <XAxis dataKey="hour" tick={{ fill: '#A1A1AA', fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={24} />
-                                    <YAxis tick={{ fill: '#A1A1AA', fontSize: 11 }} tickLine={false} axisLine={false} width={30} />
-                                    <Tooltip contentStyle={tooltipStyle} />
-                                    <Area type="monotone" dataKey="usedSpots" stroke="#38BDF8" fill="url(#usedSpotsGradient)" strokeWidth={2.2} />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
 
-                    <Card>
-                        <CardHeader className="space-y-3">
-                            <div className="flex items-center justify-between gap-2">
-                                <CardTitle>Device Health (24h)</CardTitle>
-                                <Badge className="border-slate-700 bg-slate-900 text-slate-300">Telemetry</Badge>
-                            </div>
-                            <CardDescription>Online, warning, and offline devices over time.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="h-72 pt-0">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={telemetry24h}>
-                                    <CartesianGrid vertical={false} stroke="#27272A" />
-                                    <XAxis dataKey="hour" tick={{ fill: '#A1A1AA', fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={24} />
-                                    <YAxis tick={{ fill: '#A1A1AA', fontSize: 11 }} tickLine={false} axisLine={false} width={30} />
-                                    <Tooltip contentStyle={tooltipStyle} />
-                                    <Line type="monotone" dataKey="online" stroke="#34D399" strokeWidth={2.2} dot={false} />
-                                    <Line type="monotone" dataKey="warning" stroke="#FBBF24" strokeWidth={2} dot={false} />
-                                    <Line type="monotone" dataKey="offline" stroke="#FB7185" strokeWidth={2} dot={false} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
 
-                    <Card>
-                        <CardHeader className="space-y-3">
-                            <div className="flex items-center justify-between gap-2">
-                                <CardTitle>Parking Flow (24h)</CardTitle>
-                                <Badge className="border-slate-700 bg-slate-900 text-slate-300">Entries vs exits</Badge>
+
+            <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                className="mx-auto flex h-full w-full max-w-screen-2xl flex-1 flex-col gap-8 overflow-x-auto p-4 md:p-8"
+            >
+                {/* Header Section */}
+                <motion.div
+                    variants={itemVariants}
+                    className="flex flex-col justify-between gap-6 border-b border-white/10 pb-8 md:flex-row md:items-end"
+                >
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                            <div className="relative flex h-3 w-3">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
                             </div>
-                            <CardDescription>Hourly arrivals and departures across all zones.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="h-72 pt-0">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={telemetry24h}>
-                                    <CartesianGrid vertical={false} stroke="#27272A" />
-                                    <XAxis dataKey="hour" tick={{ fill: '#A1A1AA', fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={24} />
-                                    <YAxis tick={{ fill: '#A1A1AA', fontSize: 11 }} tickLine={false} axisLine={false} width={30} />
-                                    <Tooltip contentStyle={tooltipStyle} />
-                                    <Line type="monotone" dataKey="arrivals" stroke="#22D3EE" strokeWidth={2.2} dot={false} />
-                                    <Line type="monotone" dataKey="departures" stroke="#A78BFA" strokeWidth={2.2} dot={false} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
+                            <span className="font-mono text-xs font-semibold tracking-widest text-emerald-400 uppercase">
+                                Live Telemetry
+                            </span>
+                        </div>
+                        <h1 className="text-4xl font-extrabold tracking-tight text-white drop-shadow-sm md:text-5xl">
+                            Dashboard
+                        </h1>
+                    </div>
+
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                        {/* Global Time Range Picker */}
+                        <div className="flex items-center gap-1 bg-muted/40 rounded-xl p-1.5 border border-white/5 backdrop-blur-md shadow-inner">
+                            <button
+                                onClick={() => setRange('24h')}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-mono font-bold tracking-tight transition-all duration-200 ${currentRange === '24h' ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(var(--primary),0.3)] scale-105' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}
+                            >
+                                24 HOURS
+                            </button>
+                            <button
+                                onClick={() => setRange('7d')}
+                                className={`px-4 py-1.5 rounded-lg text-xs font-mono font-bold tracking-tight transition-all duration-200 ${currentRange === '7d' ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(var(--primary),0.3)] scale-105' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}
+                            >
+                                7 DAYS
+                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-6 rounded-2xl border bg-card p-4 shadow-sm">
+                        <div className="flex flex-col items-end">
+                            <span className="mb-1 font-mono text-[10px] tracking-widest text-muted-foreground/80 uppercase">
+                                Network
+                            </span>
+                            <div className="flex items-baseline gap-1">
+                                <span className="font-mono text-3xl font-medium text-white">
+                                    {healthStats.find(
+                                        (s) => s.name === 'Online',
+                                    )?.value || 0}
+                                </span>
+                                <span className="font-mono text-sm text-muted-foreground">
+                                    /{' '}
+                                    {healthStats.reduce(
+                                        (acc, curr) => acc + curr.value,
+                                        0,
+                                    )}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="h-12 w-px bg-white/10" />
+                        <div className="flex flex-col items-end">
+                            <span className="mb-1 font-mono text-[10px] tracking-widest text-muted-foreground/80 uppercase">
+                                Active Alerts
+                            </span>
+                            <span className="font-mono text-3xl font-medium text-rose-400 drop-shadow-[0_0_8px_rgba(251,113,133,0.5)]">
+                                {errorCount + warningCount}
+                            </span>
+                        </div>
+                    </div>
                 </div>
+            </motion.div>
 
-                <div className="grid gap-4 xl:grid-cols-2">
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <CardTitle>Device Errors and Warnings</CardTitle>
-                                    <CardDescription>Active incidents tracked in real-time from your hardware.</CardDescription>
+                {/* Charts Grid */}
+                <div className="grid gap-6 xl:grid-cols-3">
+                    <motion.div variants={itemVariants}>
+                        <Card className="group relative h-full overflow-hidden">
+                            <CardHeader className="space-y-1 pb-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Map className="size-5 text-sky-400" />
+                                        <CardTitle className="text-lg text-white">
+                                            Occupancy Trend
+                                        </CardTitle>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="destructive">Errors: {errorCount}</Badge>
-                                    <Badge className="border-amber-800 bg-amber-950 text-amber-200">Warnings: {warningCount}</Badge>
+                                <div className="flex items-baseline gap-2 pt-2">
+                                    <span className="font-mono text-4xl font-bold text-white">
+                                        {usageStats.used}
+                                    </span>
+                                    <span className="font-mono text-sm tracking-wider text-muted-foreground uppercase">
+                                        Spots Used
+                                    </span>
                                 </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-5">
-                            {deviceAlerts.length === 0 && childDeviceAlerts.length === 0 ? (
-                                <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground text-sm">
-                                    All devices are online and operating normally.
-                                </div>
-                            ) : (
-                                <>
-                                    {deviceAlerts.length > 0 && (
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-semibold">Master Devices</p>
-                                            {deviceAlerts.map(renderAlertItem)}
-                                        </div>
-                                    )}
+                            </CardHeader>
+                            <CardContent className="h-64 pt-0">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={telemetry24h}>
+                                        <defs>
+                                            <linearGradient
+                                                id="usedSpots"
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <stop
+                                                    offset="5%"
+                                                    stopColor="#38BDF8"
+                                                    stopOpacity={0.4}
+                                                />
+                                                <stop
+                                                    offset="95%"
+                                                    stopColor="#38BDF8"
+                                                    stopOpacity={0}
+                                                />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid
+                                            vertical={false}
+                                            stroke="rgba(255,255,255,0.05)"
+                                        />
+                                        <XAxis
+                                            dataKey="hour"
+                                            tick={{
+                                                fill: 'rgba(255,255,255,0.4)',
+                                                fontSize: 10,
+                                                fontFamily: 'JetBrains Mono',
+                                            }}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            minTickGap={80}
+                                        />
+                                        <YAxis
+                                            tick={{
+                                                fill: 'rgba(255,255,255,0.4)',
+                                                fontSize: 10,
+                                                fontFamily: 'JetBrains Mono',
+                                            }}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            width={30}
+                                        />
+                                        <Tooltip
+                                            contentStyle={tooltipStyle}
+                                            itemStyle={{ color: '#38BDF8' }}
+                                        />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="usedSpots"
+                                            stroke="#38BDF8"
+                                            fill="url(#usedSpots)"
+                                            strokeWidth={3}
+                                            activeDot={{
+                                                r: 6,
+                                                fill: '#38BDF8',
+                                                stroke: '#000',
+                                                strokeWidth: 2,
+                                            }}
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
 
-                                    {childDeviceAlerts.length > 0 && (
-                                        <div className="space-y-2">
-                                            <p className="text-sm font-semibold">Child Sensors</p>
-                                            {childDeviceAlerts.map(renderAlertItem)}
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <CardTitle>Most Loaded Parking Zones</CardTitle>
-                                    <CardDescription>Zones with the highest real-time occupancy rates.</CardDescription>
-                                </div>
-                                <Badge className="border-slate-700 bg-slate-900 text-slate-200">Top 6 zones</Badge>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            {topLoadedZones.length === 0 ? (
-                                <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground text-sm">
-                                    No parking zones configured yet.
-                                </div>
-                            ) : (
-                                topLoadedZones.map((zone, index) => (
-                                    <Link 
-                                        href={showZone(zone.id).url}
-                                        key={zone.zone} 
-                                        className="group block rounded-lg border border-border bg-muted/30 p-3 transition-colors hover:bg-muted/50"
+                    <motion.div variants={itemVariants}>
+                        <Card className="group relative h-full overflow-hidden">
+                            <CardHeader className="space-y-1 pb-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Activity className="size-5 text-emerald-400" />
+                                        <CardTitle className="text-lg text-white">
+                                            Device Health
+                                        </CardTitle>
+                                    </div>
+                                    <Badge
+                                        variant="outline"
+                                        className="border-emerald-500/30 bg-emerald-500/10 font-mono text-[10px] tracking-wider text-emerald-400 uppercase"
                                     >
-                                        <div className="mb-2 flex items-center justify-between gap-4">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-muted-foreground text-xs">#{index + 1}</span>
-                                                <p className="text-sm font-medium group-hover:text-primary transition-colors">{zone.zone}</p>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {zone.available === 0 ? (
-                                                    <Badge variant="destructive" className="gap-1"><ArrowUpRight className="size-3" /> 100%</Badge>
-                                                ) : zone.occupancy < 50 ? (
-                                                    <Badge className="border-emerald-800 bg-emerald-950 text-emerald-200 gap-1"><ArrowDownRight className="size-3" /> {zone.occupancy}%</Badge>
-                                                ) : (
-                                                    <Badge className="border-amber-800 bg-amber-950 text-amber-200 gap-1"><ArrowUpRight className="size-3" /> {zone.occupancy}%</Badge>
-                                                )}
-                                                <span className="text-muted-foreground text-xs">Free: {zone.available}</span>
-                                                <ChevronRight className="size-4 text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity" />
-                                            </div>
-                                        </div>
-                                        <div className="h-2 rounded-full bg-slate-800">
-                                            <div
-                                                className={`h-2 rounded-full transition-all duration-500 ${zone.available === 0 ? 'bg-rose-500' : zone.occupancy < 50 ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                                                style={{ width: `${zone.occupancy}%` }}
-                                            />
-                                        </div>
-                                    </Link>
-                                ))
-                            )}
-                        </CardContent>
-                    </Card>
+                                        Telemetry
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="h-64 pt-6">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={telemetry24h}>
+                                        <CartesianGrid
+                                            vertical={false}
+                                            stroke="rgba(255,255,255,0.05)"
+                                        />
+                                        <XAxis
+                                            dataKey="hour"
+                                            tick={{
+                                                fill: 'rgba(255,255,255,0.4)',
+                                                fontSize: 10,
+                                                fontFamily: 'JetBrains Mono',
+                                            }}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            minTickGap={80}
+                                        />
+                                        <YAxis
+                                            tick={{
+                                                fill: 'rgba(255,255,255,0.4)',
+                                                fontSize: 10,
+                                                fontFamily: 'JetBrains Mono',
+                                            }}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            width={30}
+                                        />
+                                        <Tooltip contentStyle={tooltipStyle} />
+                                        <Line
+                                            type="step"
+                                            dataKey="online"
+                                            stroke="#34D399"
+                                            strokeWidth={2}
+                                            dot={false}
+                                            activeDot={{ r: 4 }}
+                                        />
+                                        <Line
+                                            type="step"
+                                            dataKey="warning"
+                                            stroke="#FBBF24"
+                                            strokeWidth={2}
+                                            dot={false}
+                                            activeDot={{ r: 4 }}
+                                        />
+                                        <Line
+                                            type="step"
+                                            dataKey="offline"
+                                            stroke="#FB7185"
+                                            strokeWidth={2}
+                                            dot={false}
+                                            activeDot={{ r: 4 }}
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+
+                    <motion.div variants={itemVariants}>
+                        <Card className="group relative h-full overflow-hidden">
+                            <CardHeader className="space-y-1 pb-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Zap className="size-5 text-indigo-400" />
+                                        <CardTitle className="text-lg text-white">
+                                            Traffic Flow
+                                        </CardTitle>
+                                    </div>
+                                    <Badge
+                                        variant="outline"
+                                        className="border-indigo-500/30 bg-indigo-500/10 font-mono text-[10px] tracking-wider text-indigo-400 uppercase"
+                                    >
+                                        In/Out
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="h-64 pt-6">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={telemetry24h}>
+                                        <CartesianGrid
+                                            vertical={false}
+                                            stroke="rgba(255,255,255,0.05)"
+                                            strokeDasharray="3 3"
+                                        />
+                                        <XAxis
+                                            dataKey="hour"
+                                            tick={{
+                                                fill: 'rgba(255,255,255,0.4)',
+                                                fontSize: 10,
+                                                fontFamily: 'JetBrains Mono',
+                                            }}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            minTickGap={80}
+                                        />
+                                        <YAxis
+                                            tick={{
+                                                fill: 'rgba(255,255,255,0.4)',
+                                                fontSize: 10,
+                                                fontFamily: 'JetBrains Mono',
+                                            }}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            width={30}
+                                        />
+                                        <Tooltip contentStyle={tooltipStyle} />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="arrivals"
+                                            stroke="#818CF8"
+                                            strokeWidth={3}
+                                            dot={false}
+                                            activeDot={{
+                                                r: 6,
+                                                fill: '#818CF8',
+                                                stroke: '#000',
+                                                strokeWidth: 2,
+                                            }}
+                                        />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="departures"
+                                            stroke="#C084FC"
+                                            strokeWidth={3}
+                                            dot={false}
+                                            activeDot={{
+                                                r: 6,
+                                                fill: '#C084FC',
+                                                stroke: '#000',
+                                                strokeWidth: 2,
+                                            }}
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
                 </div>
-            </div>
+
+                <div className="mt-2 grid gap-6 xl:grid-cols-2">
+                    <motion.div variants={itemVariants}>
+                        <Card className="flex h-full flex-col">
+                            <CardHeader className="border-b border-white/5 pb-6">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <ShieldAlert className="size-5 text-rose-400" />
+                                            <CardTitle className="text-xl text-white">
+                                                System Alerts
+                                            </CardTitle>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground/70">
+                                            Hardware anomalies requiring
+                                            attention.
+                                        </p>
+                                    </div>
+                                    {(errorCount > 0 || warningCount > 0) && (
+                                        <div className="flex items-center gap-2">
+                                            {errorCount > 0 && (
+                                                <Badge className="animate-pulse border-rose-500/30 bg-rose-500/20 font-mono text-rose-400">
+                                                    {errorCount} ERR
+                                                </Badge>
+                                            )}
+                                            {warningCount > 0 && (
+                                                <Badge className="border-amber-500/30 bg-amber-500/20 font-mono text-amber-400">
+                                                    {warningCount} WRN
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="flex-1 p-6">
+                                {deviceAlerts.length === 0 &&
+                                    childDeviceAlerts.length === 0 ? (
+                                    <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
+                                        <div className="mb-4 rounded-full bg-emerald-500/10 p-4">
+                                            <Activity className="size-8 text-emerald-400" />
+                                        </div>
+                                        <h3 className="mb-1 text-lg font-medium text-white">
+                                            All Systems Nominal
+                                        </h3>
+                                        <p className="max-w-sm text-sm text-muted-foreground/70">
+                                            No hardware anomalies detected
+                                            across the parking network.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        {deviceAlerts.length > 0 && (
+                                            <div className="space-y-3">
+                                                <h4 className="border-b border-white/5 pb-2 font-mono text-xs tracking-widest text-muted-foreground/50 uppercase">
+                                                    Master Controllers
+                                                </h4>
+                                                <div className="space-y-3">
+                                                    {deviceAlerts.map(
+                                                        renderAlertItem,
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {childDeviceAlerts.length > 0 && (
+                                            <div className="space-y-3">
+                                                <h4 className="border-b border-white/5 pb-2 font-mono text-xs tracking-widest text-muted-foreground/50 uppercase">
+                                                    Sensor Nodes
+                                                </h4>
+                                                <div className="space-y-3">
+                                                    {childDeviceAlerts.map(
+                                                        renderAlertItem,
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+
+                    <motion.div variants={itemVariants}>
+                        <Card className="flex h-full flex-col">
+                            <CardHeader className="border-b border-white/5 pb-6">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <Cpu className="size-5 text-amber-400" />
+                                            <CardTitle className="text-xl text-white">
+                                                High-Load Zones
+                                            </CardTitle>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground/70">
+                                            Sectors operating near maximum
+                                            capacity.
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="flex-1 p-6">
+                                {topLoadedZones.length === 0 ? (
+                                    <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
+                                        <Map className="mb-4 size-8 text-muted-foreground/30" />
+                                        <p className="text-sm text-muted-foreground/70">
+                                            No active zones detected.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {topLoadedZones.map((zone, index) => (
+                                            <Link
+                                                href={showZone(zone.id).url}
+                                                key={zone.zone}
+                                                className="group block rounded-xl border bg-muted/30 p-4 transition-all hover:bg-muted/50 hover:border-primary/30"
+                                            >
+                                                <div className="mb-4 flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex size-6 items-center justify-center rounded-md bg-white/10 font-mono text-xs text-white">
+                                                            {index + 1}
+                                                        </div>
+                                                        <h3 className="text-base font-bold text-white transition-colors group-hover:text-primary">
+                                                            {zone.zone}
+                                                        </h3>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        {zone.available ===
+                                                            0 ? (
+                                                            <Badge className="gap-1.5 rounded-sm border-rose-500/30 bg-rose-500/20 font-mono text-rose-400">
+                                                                <ArrowUpRight className="size-3" />{' '}
+                                                                100%
+                                                            </Badge>
+                                                        ) : zone.occupancy <
+                                                            50 ? (
+                                                            <Badge className="gap-1.5 rounded-sm border-emerald-500/20 bg-emerald-500/10 font-mono text-emerald-400">
+                                                                <ArrowDownRight className="size-3" />{' '}
+                                                                {zone.occupancy}
+                                                                %
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge className="gap-1.5 rounded-sm border-amber-500/20 bg-amber-500/10 font-mono text-amber-400">
+                                                                <ArrowUpRight className="size-3" />{' '}
+                                                                {zone.occupancy}
+                                                                %
+                                                            </Badge>
+                                                        )}
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="font-mono text-[10px] tracking-widest text-muted-foreground/60 uppercase">
+                                                                Available
+                                                            </span>
+                                                            <span className="font-mono text-sm leading-none text-white">
+                                                                {zone.available}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="relative h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+                                                    <motion.div
+                                                        initial={{ width: 0 }}
+                                                        animate={{
+                                                            width: `${zone.occupancy}%`,
+                                                        }}
+                                                        transition={{
+                                                            duration: 1,
+                                                            ease: 'easeOut',
+                                                            delay:
+                                                                0.2 +
+                                                                index * 0.1,
+                                                        }}
+                                                        className={`absolute top-0 left-0 h-full rounded-full ${zone.available === 0
+                                                                ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'
+                                                                : zone.occupancy <
+                                                                    50
+                                                                    ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
+                                                                    : 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
+                                                            }`}
+                                                    />
+                                                </div>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+                </div>
+            </motion.div>
         </AppLayout>
     );
 }

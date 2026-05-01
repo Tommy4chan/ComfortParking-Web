@@ -7,6 +7,8 @@ use App\Http\Requests\Device\SyncDeviceRequest;
 use App\Jobs\ProcessImageRecognition;
 use App\Models\ChildDevice;
 use App\Models\Device;
+use App\Models\DeviceTelemetrySnapshot;
+use App\Models\ParkingEvent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -31,13 +33,43 @@ class DeviceController extends Controller
                         ->where('device_id', $device->id)
                         ->firstOrFail();
 
+                    $oldSpotUsed = $childDevice->is_spot_used;
+
                     $childDevice->update([
                         'battery_voltage' => $childData['battery_voltage'],
                         'is_spot_used' => $childData['is_spot_used'],
                         'last_reported_at' => now(),
                     ]);
+
+                    if ($oldSpotUsed !== $childData['is_spot_used']) {
+                        ParkingEvent::create([
+                            'child_device_id' => $childDevice->id,
+                            'device_id' => $device->id,
+                            'parking_zone_id' => $device->parking_zone_id,
+                            'event_type' => $childData['is_spot_used'] ? 'arrival' : 'departure',
+                            'occurred_at' => now(),
+                            'previous_state' => $oldSpotUsed,
+                            'new_state' => $childData['is_spot_used'],
+                        ]);
+                    }
                 }
             }
+
+            $usedSpots = ChildDevice::where('device_id', $device->id)->where('is_spot_used', true)->count();
+            $totalSpots = ChildDevice::where('device_id', $device->id)->count();
+            
+            DeviceTelemetrySnapshot::create([
+                'device_id' => $device->id,
+                'parking_zone_id' => $device->parking_zone_id,
+                'recorded_at' => now(),
+                'used_spots' => $usedSpots,
+                'total_spots' => $totalSpots,
+                'battery_voltage_mv' => $validated['battery_voltage'],
+                'status' => $device->status,
+                'response_time_ms' => null, // Sync endpoint doesn't track this easily, maybe later
+                'online_child_count' => $totalSpots,
+                'offline_child_count' => 0,
+            ]);
 
             DB::commit();
 

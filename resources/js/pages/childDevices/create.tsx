@@ -1,10 +1,10 @@
 import AppLayout from '@/layouts/app-layout';
-import { Device, type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
-import FormTemplate from './formTemplate';
 import { store } from '@/routes/child-devices';
 import devices from '@/routes/devices';
 import parkingZones from '@/routes/parking-zones';
+import { Device, type BreadcrumbItem } from '@/types';
+import { Head } from '@inertiajs/react';
+import FormTemplate from './formTemplate';
 
 export default function Create({ device }: { device: Device }) {
     const breadcrumbs: BreadcrumbItem[] = [
@@ -31,10 +31,7 @@ export default function Create({ device }: { device: Device }) {
             <Head title="Create Child Device" />
             <div className="flex flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
                 <div className="w-full max-w-7xl">
-                    <FormTemplate
-                        device={device}
-                        {...store()}
-                    />
+                    <FormTemplate device={device} {...store()} />
                 </div>
             </div>
         </AppLayout>

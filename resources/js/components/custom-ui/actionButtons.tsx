@@ -1,4 +1,3 @@
-import { Button, buttonVariants } from '@/components/ui/button';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -9,9 +8,10 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { router, Link } from '@inertiajs/react';
-import { Pencil, Trash2, Eye, Plus } from 'lucide-react';
+} from '@/components/ui/alert-dialog';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Link, router } from '@inertiajs/react';
+import { Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ActionButtonsProps {
@@ -24,7 +24,15 @@ interface ActionButtonsProps {
     isBigButtons?: boolean;
 }
 
-const ActionButtons = ({ createUrl, createText, showUrl, editUrl, destroyUrl, title, isBigButtons = false }: ActionButtonsProps) => {
+const ActionButtons = ({
+    createUrl,
+    createText,
+    showUrl,
+    editUrl,
+    destroyUrl,
+    title,
+    isBigButtons = false,
+}: ActionButtonsProps) => {
     const deleteObj = () => {
         if (!destroyUrl) return;
 
@@ -34,16 +42,23 @@ const ActionButtons = ({ createUrl, createText, showUrl, editUrl, destroyUrl, ti
             },
             onError: () => {
                 toast.error('Failed to delete parking zone');
-            }
+            },
         });
     };
 
     return (
-        <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+        <div
+            className="flex justify-end gap-2"
+            onClick={(e) => e.stopPropagation()}
+        >
             {createUrl && (
                 <Link
                     href={createUrl}
-                    className={isBigButtons ? buttonVariants({ variant: 'default' }) : buttonVariants({ variant: 'ghost', size: 'sm' })}
+                    className={
+                        isBigButtons
+                            ? buttonVariants({ variant: 'default' })
+                            : buttonVariants({ variant: 'ghost', size: 'sm' })
+                    }
                 >
                     <Plus className="mr-2 h-4 w-4" />
                     {isBigButtons && createText}
@@ -52,7 +67,11 @@ const ActionButtons = ({ createUrl, createText, showUrl, editUrl, destroyUrl, ti
             {showUrl && (
                 <Link
                     href={showUrl}
-                    className={isBigButtons ? buttonVariants({ variant: 'default' }) : buttonVariants({ variant: 'ghost', size: 'sm' })}
+                    className={
+                        isBigButtons
+                            ? buttonVariants({ variant: 'default' })
+                            : buttonVariants({ variant: 'ghost', size: 'sm' })
+                    }
                 >
                     <Eye className="h-4 w-4" />
                     {isBigButtons && 'View'}
@@ -61,7 +80,11 @@ const ActionButtons = ({ createUrl, createText, showUrl, editUrl, destroyUrl, ti
             {editUrl && (
                 <Link
                     href={editUrl}
-                    className={isBigButtons ? buttonVariants({ variant: 'default' }) : buttonVariants({ variant: 'ghost', size: 'sm' })}
+                    className={
+                        isBigButtons
+                            ? buttonVariants({ variant: 'default' })
+                            : buttonVariants({ variant: 'ghost', size: 'sm' })
+                    }
                 >
                     <Pencil className="h-4 w-4" />
                     {isBigButtons && 'Edit'}
@@ -71,11 +94,13 @@ const ActionButtons = ({ createUrl, createText, showUrl, editUrl, destroyUrl, ti
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
                         <Button
-                            variant={isBigButtons ? "destructive" : "ghost"}
-                            size={isBigButtons ? "default" : "sm"}
-                            className='cursor-pointer'
+                            variant={isBigButtons ? 'destructive' : 'ghost'}
+                            size={isBigButtons ? 'default' : 'sm'}
+                            className="cursor-pointer"
                         >
-                            <Trash2 className={`h-4 w-4 ${!isBigButtons ? "text-destructive" : ""}`} />
+                            <Trash2
+                                className={`h-4 w-4 ${!isBigButtons ? 'text-destructive' : ''}`}
+                            />
                             {isBigButtons && 'Delete'}
                         </Button>
                     </AlertDialogTrigger>
@@ -83,14 +108,16 @@ const ActionButtons = ({ createUrl, createText, showUrl, editUrl, destroyUrl, ti
                         <AlertDialogHeader>
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the "{title}" and all associated data.
+                                This action cannot be undone. This will
+                                permanently delete the "{title}" and all
+                                associated data.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                                 onClick={deleteObj}
-                                className='cursor-pointer'
+                                className="cursor-pointer"
                             >
                                 Delete
                             </AlertDialogAction>
@@ -99,7 +126,7 @@ const ActionButtons = ({ createUrl, createText, showUrl, editUrl, destroyUrl, ti
                 </AlertDialog>
             )}
         </div>
-    )
-}
+    );
+};
 
-export default ActionButtons
+export default ActionButtons;

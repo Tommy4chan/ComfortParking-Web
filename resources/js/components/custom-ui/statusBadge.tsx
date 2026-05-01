@@ -1,4 +1,4 @@
-import { Badge } from "../ui/badge"
+import { Badge } from '../ui/badge';
 
 interface StatusBadgeProps {
     status: 'online' | 'warning' | 'offline';
@@ -9,14 +9,16 @@ const StatusBadge = ({ status, isSmall }: StatusBadgeProps) => {
     return (
         <Badge
             variant={
-                status === 'online' ? "default" :
-                    status === 'warning' ? "secondary" :
-                        "destructive"
+                status === 'online'
+                    ? 'default'
+                    : status === 'warning'
+                      ? 'secondary'
+                      : 'destructive'
             }
-            className={isSmall ? "" : "text-base" }
+            className={isSmall ? '' : 'text-base'}
         >
             {status}
         </Badge>
-    )
-}
-export default StatusBadge
+    );
+};
+export default StatusBadge;

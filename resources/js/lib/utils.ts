@@ -38,7 +38,9 @@ export const getFormattedDate = (
         ...options,
     };
 
-    return new Intl.DateTimeFormat('default', defaultOptions).format(new Date(date));
+    return new Intl.DateTimeFormat('default', defaultOptions).format(
+        new Date(date),
+    );
 };
 
 /**
@@ -75,7 +77,9 @@ export const getRelativeTime = (date: string | null | undefined) => {
  * @param date - ISO 8601 date string from API (UTC)
  * @returns Formatted date with timezone (e.g., "Nov 20, 2025, 3:30 PM PST")
  */
-export const getFormattedDateWithTimezone = (date: string | null | undefined) => {
+export const getFormattedDateWithTimezone = (
+    date: string | null | undefined,
+) => {
     if (!date) return 'N/A';
 
     return new Intl.DateTimeFormat('default', {

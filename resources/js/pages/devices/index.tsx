@@ -1,3 +1,4 @@
+import DeviceTable from '@/components/custom-ui/deviceTable';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,11 +10,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import AppLayout from '@/layouts/app-layout';
+import ListLayout from '@/layouts/list/layout';
+import { index } from '@/routes/devices';
 import { Device, type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { index } from '@/routes/devices';
-import DeviceTable from '@/components/custom-ui/deviceTable';
-import ListLayout from '@/layouts/list/layout';
 import { Download, RotateCcw, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -24,11 +24,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Index({
-    devices,
-}: {
-    devices: Device[];
-}) {
+export default function Index({ devices }: { devices: Device[] }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [batteryFilter, setBatteryFilter] = useState('all');
@@ -50,24 +46,38 @@ export default function Index({
         const normalizedSearch = searchTerm.trim().toLowerCase();
 
         const filtered = devices.filter((device) => {
-            const matchesSearch = normalizedSearch.length === 0
-                || device.title.toLowerCase().includes(normalizedSearch)
-                || device.id.toString().includes(normalizedSearch)
-                || device.hash.toLowerCase().includes(normalizedSearch);
+            const matchesSearch =
+                normalizedSearch.length === 0 ||
+                device.title.toLowerCase().includes(normalizedSearch) ||
+                device.id.toString().includes(normalizedSearch) ||
+                device.hash.toLowerCase().includes(normalizedSearch);
 
-            const matchesStatus = statusFilter === 'all' || device.status === statusFilter;
+            const matchesStatus =
+                statusFilter === 'all' || device.status === statusFilter;
 
-            const matchesBattery = batteryFilter === 'all'
-                || (batteryFilter === 'good' && device.battery_voltage >= 3.7)
-                || (batteryFilter === 'low' && device.battery_voltage >= 3.4 && device.battery_voltage < 3.7)
-                || (batteryFilter === 'critical' && device.battery_voltage < 3.4);
+            const matchesBattery =
+                batteryFilter === 'all' ||
+                (batteryFilter === 'good' && device.battery_voltage >= 3.7) ||
+                (batteryFilter === 'low' &&
+                    device.battery_voltage >= 3.4 &&
+                    device.battery_voltage < 3.7) ||
+                (batteryFilter === 'critical' && device.battery_voltage < 3.4);
 
-            const matchesReport = reportFilter === 'all'
-                || (reportFilter === 'recent' && reportIsRecent(device.last_reported_at))
-                || (reportFilter === 'stale' && !!device.last_reported_at && !reportIsRecent(device.last_reported_at))
-                || (reportFilter === 'missing' && !device.last_reported_at);
+            const matchesReport =
+                reportFilter === 'all' ||
+                (reportFilter === 'recent' &&
+                    reportIsRecent(device.last_reported_at)) ||
+                (reportFilter === 'stale' &&
+                    !!device.last_reported_at &&
+                    !reportIsRecent(device.last_reported_at)) ||
+                (reportFilter === 'missing' && !device.last_reported_at);
 
-            return matchesSearch && matchesStatus && matchesBattery && matchesReport;
+            return (
+                matchesSearch &&
+                matchesStatus &&
+                matchesBattery &&
+                matchesReport
+            );
         });
 
         return filtered.sort((a, b) => {
@@ -87,23 +97,44 @@ export default function Index({
                 return a.status.localeCompare(b.status);
             }
 
-            const timeA = a.last_reported_at ? new Date(a.last_reported_at).getTime() : 0;
-            const timeB = b.last_reported_at ? new Date(b.last_reported_at).getTime() : 0;
+            const timeA = a.last_reported_at
+                ? new Date(a.last_reported_at).getTime()
+                : 0;
+            const timeB = b.last_reported_at
+                ? new Date(b.last_reported_at).getTime()
+                : 0;
 
             return timeB - timeA;
         });
-    }, [devices, searchTerm, statusFilter, batteryFilter, reportFilter, sortBy]);
+    }, [
+        devices,
+        searchTerm,
+        statusFilter,
+        batteryFilter,
+        reportFilter,
+        sortBy,
+    ]);
 
-    const hasActiveFilters = searchTerm.trim().length > 0
-        || statusFilter !== 'all'
-        || batteryFilter !== 'all'
-        || reportFilter !== 'all'
-        || sortBy !== 'recent';
+    const hasActiveFilters =
+        searchTerm.trim().length > 0 ||
+        statusFilter !== 'all' ||
+        batteryFilter !== 'all' ||
+        reportFilter !== 'all' ||
+        sortBy !== 'recent';
 
-    const onlineCount = devices.filter((device) => device.status === 'online').length;
-    const warningCount = devices.filter((device) => device.status === 'warning').length;
-    const offlineCount = devices.filter((device) => device.status === 'offline').length;
-    const totalAvailableSpots = devices.reduce((sum, device) => sum + device.available_parking_spots, 0);
+    const onlineCount = devices.filter(
+        (device) => device.status === 'online',
+    ).length;
+    const warningCount = devices.filter(
+        (device) => device.status === 'warning',
+    ).length;
+    const offlineCount = devices.filter(
+        (device) => device.status === 'offline',
+    ).length;
+    const totalAvailableSpots = devices.reduce(
+        (sum, device) => sum + device.available_parking_spots,
+        0,
+    );
 
     const clearFilters = () => {
         setSearchTerm('');
@@ -123,49 +154,84 @@ export default function Index({
                 <div className="mb-6 space-y-3">
                     <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                         <div className="relative w-full xl:max-w-sm">
-                            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search by title, hash, or device ID"
                                 className="pl-9"
                                 value={searchTerm}
-                                onChange={(event) => setSearchTerm(event.target.value)}
+                                onChange={(event) =>
+                                    setSearchTerm(event.target.value)
+                                }
                             />
                         </div>
 
                         <div className="grid w-full gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-4">
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <Select
+                                value={statusFilter}
+                                onValueChange={setStatusFilter}
+                            >
                                 <SelectTrigger className="w-full xl:w-40">
                                     <SelectValue placeholder="Status" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Any status</SelectItem>
-                                    <SelectItem value="online">Online</SelectItem>
-                                    <SelectItem value="warning">Warning</SelectItem>
-                                    <SelectItem value="offline">Offline</SelectItem>
+                                    <SelectItem value="all">
+                                        Any status
+                                    </SelectItem>
+                                    <SelectItem value="online">
+                                        Online
+                                    </SelectItem>
+                                    <SelectItem value="warning">
+                                        Warning
+                                    </SelectItem>
+                                    <SelectItem value="offline">
+                                        Offline
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
 
-                            <Select value={batteryFilter} onValueChange={setBatteryFilter}>
+                            <Select
+                                value={batteryFilter}
+                                onValueChange={setBatteryFilter}
+                            >
                                 <SelectTrigger className="w-full xl:w-40">
                                     <SelectValue placeholder="Battery" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All battery levels</SelectItem>
-                                    <SelectItem value="good">Good (&ge; 3.7V)</SelectItem>
-                                    <SelectItem value="low">Low (3.4V - 3.69V)</SelectItem>
-                                    <SelectItem value="critical">Critical (&lt; 3.4V)</SelectItem>
+                                    <SelectItem value="all">
+                                        All battery levels
+                                    </SelectItem>
+                                    <SelectItem value="good">
+                                        Good (&ge; 3.7V)
+                                    </SelectItem>
+                                    <SelectItem value="low">
+                                        Low (3.4V - 3.69V)
+                                    </SelectItem>
+                                    <SelectItem value="critical">
+                                        Critical (&lt; 3.4V)
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
 
-                            <Select value={reportFilter} onValueChange={setReportFilter}>
+                            <Select
+                                value={reportFilter}
+                                onValueChange={setReportFilter}
+                            >
                                 <SelectTrigger className="w-full xl:w-44">
                                     <SelectValue placeholder="Reported" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Any report state</SelectItem>
-                                    <SelectItem value="recent">Reported in 24h</SelectItem>
-                                    <SelectItem value="stale">Older than 24h</SelectItem>
-                                    <SelectItem value="missing">Never reported</SelectItem>
+                                    <SelectItem value="all">
+                                        Any report state
+                                    </SelectItem>
+                                    <SelectItem value="recent">
+                                        Reported in 24h
+                                    </SelectItem>
+                                    <SelectItem value="stale">
+                                        Older than 24h
+                                    </SelectItem>
+                                    <SelectItem value="missing">
+                                        Never reported
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
 
@@ -174,11 +240,21 @@ export default function Index({
                                     <SelectValue placeholder="Sort by" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="recent">Sort: last reported</SelectItem>
-                                    <SelectItem value="title">Sort: title</SelectItem>
-                                    <SelectItem value="battery">Sort: battery</SelectItem>
-                                    <SelectItem value="spots">Sort: available spots</SelectItem>
-                                    <SelectItem value="status">Sort: status</SelectItem>
+                                    <SelectItem value="recent">
+                                        Sort: last reported
+                                    </SelectItem>
+                                    <SelectItem value="title">
+                                        Sort: title
+                                    </SelectItem>
+                                    <SelectItem value="battery">
+                                        Sort: battery
+                                    </SelectItem>
+                                    <SelectItem value="spots">
+                                        Sort: available spots
+                                    </SelectItem>
+                                    <SelectItem value="status">
+                                        Sort: status
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -191,7 +267,12 @@ export default function Index({
                             <Button variant="outline" size="sm" type="button">
                                 Refresh
                             </Button>
-                            <Button variant="ghost" size="sm" type="button" onClick={clearFilters}>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                type="button"
+                                onClick={clearFilters}
+                            >
                                 <RotateCcw className="size-4" />
                                 Reset
                             </Button>
@@ -222,7 +303,10 @@ export default function Index({
                     </div>
                 </div>
 
-                <DeviceTable devices={filteredDevices} hasActiveFilters={hasActiveFilters} />
+                <DeviceTable
+                    devices={filteredDevices}
+                    hasActiveFilters={hasActiveFilters}
+                />
             </ListLayout>
         </AppLayout>
     );

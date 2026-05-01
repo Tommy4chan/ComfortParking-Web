@@ -1,5 +1,11 @@
 import ActionButtons from '@/components/custom-ui/actionButtons';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { PropsWithChildren } from 'react';
 
 interface ListLayoutProps {
@@ -10,10 +16,16 @@ interface ListLayoutProps {
     isChild?: boolean;
 }
 
-export default function ListLayout({ children, createUrl, createText, title, description, isChild = false }: PropsWithChildren<ListLayoutProps>) {
-
+export default function ListLayout({
+    children,
+    createUrl,
+    createText,
+    title,
+    description,
+    isChild = false,
+}: PropsWithChildren<ListLayoutProps>) {
     return (
-        <div className={isChild ? "" : "container mx-auto p-6"}>
+        <div className={isChild ? '' : 'container mx-auto p-6'}>
             <Card>
                 <CardHeader>
                     <div className="flex items-center justify-between">
@@ -30,9 +42,7 @@ export default function ListLayout({ children, createUrl, createText, title, des
                         />
                     </div>
                 </CardHeader>
-                <CardContent>
-                    {children}
-                </CardContent>
+                <CardContent>{children}</CardContent>
             </Card>
         </div>
     );

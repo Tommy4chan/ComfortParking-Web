@@ -1,10 +1,10 @@
-import { Badge } from "../ui/badge"
+import { Badge } from '../ui/badge';
 
-const SpotStatusBadge = ({isUsed} : {isUsed: boolean}) => {
+const SpotStatusBadge = ({ isUsed }: { isUsed: boolean }) => {
     return (
-        <Badge variant={isUsed ? "destructive" : "default"}>
+        <Badge variant={isUsed ? 'destructive' : 'default'}>
             {isUsed ? 'Occupied' : 'Available'}
         </Badge>
-    )
-}
-export default SpotStatusBadge
+    );
+};
+export default SpotStatusBadge;

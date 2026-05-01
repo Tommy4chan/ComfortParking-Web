@@ -1,10 +1,10 @@
 import AppLayout from '@/layouts/app-layout';
-import parkingZones from '@/routes/parking-zones';
+import { update } from '@/routes/child-devices';
 import devices from '@/routes/devices';
+import parkingZones from '@/routes/parking-zones';
 import { ChildDevice, type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import FormTemplate from './formTemplate';
-import { update } from '@/routes/child-devices';
 
 export default function Edit({ childDevice }: { childDevice: ChildDevice }) {
     const breadcrumbs: BreadcrumbItem[] = [
@@ -14,7 +14,8 @@ export default function Edit({ childDevice }: { childDevice: ChildDevice }) {
         },
         {
             title: childDevice.device?.parking_zone?.title || 'Parking Zone',
-            href: parkingZones.show(childDevice.device?.parking_zone_id || 0).url,
+            href: parkingZones.show(childDevice.device?.parking_zone_id || 0)
+                .url,
         },
         {
             title: childDevice.device?.title || 'Device',

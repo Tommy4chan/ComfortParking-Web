@@ -1,9 +1,9 @@
 import AppLayout from '@/layouts/app-layout';
+import { update } from '@/routes/devices';
 import parkingZones from '@/routes/parking-zones';
 import { Device, type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import FormTemplate from './formTemplate';
-import { update } from '@/routes/devices';
 
 export default function Edit({ device }: { device: Device }) {
     const breadcrumbs: BreadcrumbItem[] = [

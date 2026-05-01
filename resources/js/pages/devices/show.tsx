@@ -1,36 +1,50 @@
+import ActionButtons from '@/components/custom-ui/actionButtons';
+import BatteryVoltageBadge from '@/components/custom-ui/batteryVoltageBadge';
+import FormattedDate from '@/components/custom-ui/formattedDate';
+import HashText from '@/components/custom-ui/hashText';
+import ImageDialog from '@/components/custom-ui/imageDialog';
+import NothingFoundList from '@/components/custom-ui/nothingFoundList';
+import ParkingSpotsGrid from '@/components/custom-ui/parkingSpotsGrid';
+import SpotStatusBadge from '@/components/custom-ui/spotStatusBadge';
+import StatusBadge from '@/components/custom-ui/statusBadge';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import parkingZones from '@/routes/parking-zones';
+import ListLayout from '@/layouts/list/layout';
+import childDevices from '@/routes/child-devices';
 import devices from '@/routes/devices';
+import parkingZones from '@/routes/parking-zones';
 import { Device, type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { MapPin, Image as ImageIcon } from 'lucide-react';
-import ActionButtons from '@/components/custom-ui/actionButtons';
-import ParkingSpotsGrid from '@/components/custom-ui/parkingSpotsGrid';
-import FormattedDate from '@/components/custom-ui/formattedDate';
-import BatteryVoltageBadge from '@/components/custom-ui/batteryVoltageBadge';
-import StatusBadge from '@/components/custom-ui/statusBadge';
-import NothingFoundList from '@/components/custom-ui/nothingFoundList';
-import childDevices from '@/routes/child-devices';
-import { buttonVariants } from '@/components/ui/button';
-import HashText from '@/components/custom-ui/hashText';
-import ListLayout from '@/layouts/list/layout';
-import SpotStatusBadge from '@/components/custom-ui/spotStatusBadge';
+import { MapPin } from 'lucide-react';
 import { useState } from 'react';
-import ImageDialog from '@/components/custom-ui/imageDialog';
 
 const getDetailedStatusMessage = (status: string, battery: number) => {
     if (status === 'online') return 'Device is operating normally.';
     if (status === 'offline') return 'Device is completely offline.';
-    if (status === 'low_battery') return `Battery level is critical (${(battery / 1000).toFixed(2)}V).`;
+    if (status === 'low_battery')
+        return `Battery level is critical (${(battery / 1000).toFixed(2)}V).`;
     return 'Device is experiencing connectivity warnings or delayed heartbeats.';
 };
 
 export default function Show({ device }: { device: Device }) {
     const [imageDialogOpen, setImageDialogOpen] = useState(false);
-    const [processedImageDialogOpen, setProcessedImageDialogOpen] = useState(false);
+    const [processedImageDialogOpen, setProcessedImageDialogOpen] =
+        useState(false);
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -52,16 +66,22 @@ export default function Show({ device }: { device: Device }) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={device.title} />
-            <div className="container mx-auto p-6 space-y-6">
+            <div className="container mx-auto space-y-6 p-6">
                 <Card>
                     <CardHeader>
                         <div className="flex items-center justify-between">
                             <div className="flex-1">
-                                <CardTitle className="text-2xl">{device.title}</CardTitle>
+                                <CardTitle className="text-2xl">
+                                    {device.title}
+                                </CardTitle>
                                 <CardDescription className="mt-2 flex items-center gap-2">
                                     <MapPin className="h-4 w-4" />
                                     <Link
-                                        href={parkingZones.show(device.parking_zone_id).url}
+                                        href={
+                                            parkingZones.show(
+                                                device.parking_zone_id,
+                                            ).url
+                                        }
                                         className="hover:underline"
                                     >
                                         {device.parking_zone?.title}
@@ -85,40 +105,66 @@ export default function Show({ device }: { device: Device }) {
 
                         <Separator />
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div className="space-y-1">
-                                <p className="text-sm font-medium text-muted-foreground">Battery Voltage</p>
-                                <BatteryVoltageBadge batteryVoltage={device.battery_voltage} />
+                                <p className="text-sm font-medium text-muted-foreground">
+                                    Battery Voltage
+                                </p>
+                                <BatteryVoltageBadge
+                                    batteryVoltage={device.battery_voltage}
+                                />
                             </div>
                             <div className="space-y-1">
-                                <p className="text-sm font-medium text-muted-foreground">Status</p>
+                                <p className="text-sm font-medium text-muted-foreground">
+                                    Status
+                                </p>
                                 <div className="flex items-center gap-2">
                                     <StatusBadge status={device.status} />
                                     {device.status !== 'online' && (
-                                        <span className="text-sm text-muted-foreground border-l border-border pl-2">
-                                            {getDetailedStatusMessage(device.status, device.battery_voltage)}
+                                        <span className="border-l border-border pl-2 text-sm text-muted-foreground">
+                                            {getDetailedStatusMessage(
+                                                device.status,
+                                                device.battery_voltage,
+                                            )}
                                         </span>
                                     )}
                                 </div>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-sm font-medium text-muted-foreground">Location</p>
-                                <p className="text-base">{device.latitude}, {device.longitude}</p>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-sm font-medium text-muted-foreground">Device Hash</p>
-                                <HashText hash={device.hash} />
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-sm font-medium text-muted-foreground">Last Reported</p>
+                                <p className="text-sm font-medium text-muted-foreground">
+                                    Location
+                                </p>
                                 <p className="text-base">
-                                    <FormattedDate date={device.last_reported_at} format="with-timezone" />
+                                    {device.latitude}, {device.longitude}
                                 </p>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-sm font-medium text-muted-foreground">Configured Spots</p>
+                                <p className="text-sm font-medium text-muted-foreground">
+                                    Device Hash
+                                </p>
+                                <HashText hash={device.hash} />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-sm font-medium text-muted-foreground">
+                                    Last Reported
+                                </p>
                                 <p className="text-base">
-                                    {device.parking_spots_count ?? <span className="text-muted-foreground">Not set</span>}
+                                    <FormattedDate
+                                        date={device.last_reported_at}
+                                        format="with-timezone"
+                                    />
+                                </p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-sm font-medium text-muted-foreground">
+                                    Configured Spots
+                                </p>
+                                <p className="text-base">
+                                    {device.parking_spots_count ?? (
+                                        <span className="text-muted-foreground">
+                                            Not set
+                                        </span>
+                                    )}
                                 </p>
                             </div>
                         </div>
@@ -126,20 +172,42 @@ export default function Show({ device }: { device: Device }) {
                         {/* Zone of Interest */}
                         <Separator />
                         <div className="space-y-2">
-                            <p className="text-sm font-medium text-muted-foreground">Zone of Interest</p>
+                            <p className="text-sm font-medium text-muted-foreground">
+                                Zone of Interest
+                            </p>
                             {hasZonePoints ? (
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                                <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
                                     {([1, 2, 3, 4] as const).map((n) => (
-                                        <div key={n} className="rounded-md border bg-muted/40 px-3 py-2">
-                                            <p className="text-xs text-muted-foreground mb-1">Point {n}</p>
+                                        <div
+                                            key={n}
+                                            className="rounded-md border bg-muted/40 px-3 py-2"
+                                        >
+                                            <p className="mb-1 text-xs text-muted-foreground">
+                                                Point {n}
+                                            </p>
                                             <p className="font-mono">
-                                                ({(device as any)[`zone_point_${n}_x`]}, {(device as any)[`zone_point_${n}_y`]})
+                                                (
+                                                {
+                                                    (device as any)[
+                                                        `zone_point_${n}_x`
+                                                    ]
+                                                }
+                                                ,{' '}
+                                                {
+                                                    (device as any)[
+                                                        `zone_point_${n}_y`
+                                                    ]
+                                                }
+                                                )
                                             </p>
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-sm text-muted-foreground">No zone configured — edit the device to set zone coordinates.</p>
+                                <p className="text-sm text-muted-foreground">
+                                    No zone configured — edit the device to set
+                                    zone coordinates.
+                                </p>
                             )}
                         </div>
                     </CardContent>
@@ -147,10 +215,13 @@ export default function Show({ device }: { device: Device }) {
 
                 {/* Child Devices */}
                 <ListLayout
-                    createUrl={childDevices.create({ query: { device_id: device.id } }).url}
-                    createText='Add Child Device'
-                    title='Child Devices'
-                    description='Individual parking spot sensors'
+                    createUrl={
+                        childDevices.create({ query: { device_id: device.id } })
+                            .url
+                    }
+                    createText="Add Child Device"
+                    title="Child Devices"
+                    description="Individual parking spot sensors"
                     isChild={true}
                 >
                     {device.child_devices && device.child_devices.length > 0 ? (
@@ -158,13 +229,23 @@ export default function Show({ device }: { device: Device }) {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>ID</TableHead>
-                                    <TableHead className="text-center">Spot Status</TableHead>
-                                    <TableHead className="text-center">Battery</TableHead>
-                                    <TableHead className="text-center">Device Status</TableHead>
-                                    <TableHead className="text-center">Position (X, Y)</TableHead>
+                                    <TableHead className="text-center">
+                                        Spot Status
+                                    </TableHead>
+                                    <TableHead className="text-center">
+                                        Battery
+                                    </TableHead>
+                                    <TableHead className="text-center">
+                                        Device Status
+                                    </TableHead>
+                                    <TableHead className="text-center">
+                                        Position (X, Y)
+                                    </TableHead>
                                     <TableHead>Hash</TableHead>
                                     <TableHead>Last Reported</TableHead>
-                                    <TableHead className='text-right'>Actions</TableHead>
+                                    <TableHead className="text-right">
+                                        Actions
+                                    </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -175,31 +256,58 @@ export default function Show({ device }: { device: Device }) {
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <SpotStatusBadge
-                                                isUsed={childDevice.is_spot_used}
+                                                isUsed={
+                                                    childDevice.is_spot_used
+                                                }
                                             />
                                         </TableCell>
                                         <TableCell className="text-center">
-                                            <BatteryVoltageBadge batteryVoltage={childDevice.battery_voltage} isSmall={true} />
+                                            <BatteryVoltageBadge
+                                                batteryVoltage={
+                                                    childDevice.battery_voltage
+                                                }
+                                                isSmall={true}
+                                            />
                                         </TableCell>
                                         <TableCell className="text-center">
-                                            <StatusBadge status={childDevice.status} isSmall={true} />
+                                            <StatusBadge
+                                                status={childDevice.status}
+                                                isSmall={true}
+                                            />
                                         </TableCell>
                                         <TableCell className="text-center font-mono text-sm">
-                                            {childDevice.position_x !== null && childDevice.position_y !== null
-                                                ? `(${childDevice.position_x}, ${childDevice.position_y})`
-                                                : <span className="text-muted-foreground">—</span>
-                                            }
+                                            {childDevice.position_x !== null &&
+                                            childDevice.position_y !== null ? (
+                                                `(${childDevice.position_x}, ${childDevice.position_y})`
+                                            ) : (
+                                                <span className="text-muted-foreground">
+                                                    —
+                                                </span>
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-muted-foreground">
                                             <HashText hash={childDevice.hash} />
                                         </TableCell>
                                         <TableCell className="text-muted-foreground">
-                                            <FormattedDate date={childDevice.last_reported_at} format="relative" />
+                                            <FormattedDate
+                                                date={
+                                                    childDevice.last_reported_at
+                                                }
+                                                format="relative"
+                                            />
                                         </TableCell>
                                         <TableCell>
                                             <ActionButtons
-                                                editUrl={childDevices.edit(childDevice.id).url}
-                                                destroyUrl={childDevices.destroy(childDevice.id).url}
+                                                editUrl={
+                                                    childDevices.edit(
+                                                        childDevice.id,
+                                                    ).url
+                                                }
+                                                destroyUrl={
+                                                    childDevices.destroy(
+                                                        childDevice.id,
+                                                    ).url
+                                                }
                                                 title="Child Device"
                                             />
                                         </TableCell>
@@ -211,15 +319,19 @@ export default function Show({ device }: { device: Device }) {
                         <NothingFoundList
                             title="No child devices found"
                             description="Add child sensors to individually track spot occupancy"
-                            createUrl={childDevices.create({ query: { device_id: device.id } }).url}
-                            createText='Add Child Device'
+                            createUrl={
+                                childDevices.create({
+                                    query: { device_id: device.id },
+                                }).url
+                            }
+                            createText="Add Child Device"
                         />
                     )}
                 </ListLayout>
 
                 {/* Images */}
                 {(device.last_image_url || device.last_processed_image_url) && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                         {device.last_image_url && (
                             <Card>
                                 <CardHeader>
@@ -227,22 +339,23 @@ export default function Show({ device }: { device: Device }) {
                                         Last Received Image
                                     </CardTitle>
                                     <CardDescription>
-                                        Most recent image captured by this device
+                                        Most recent image captured by this
+                                        device
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <div
-                                        className="relative cursor-pointer group overflow-hidden rounded-lg border bg-muted"
+                                        className="group relative cursor-pointer overflow-hidden rounded-lg border bg-muted"
                                         onClick={() => setImageDialogOpen(true)}
                                     >
                                         <img
                                             src={device.last_image_url}
                                             alt={`Last image from ${device.title}`}
-                                            className="w-full h-auto object-contain max-h-96 transition-transform group-hover:scale-105"
+                                            className="h-auto max-h-96 w-full object-contain transition-transform group-hover:scale-105"
                                             loading="lazy"
                                         />
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                                            <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-4 py-2 rounded-md">
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/10">
+                                            <span className="rounded-md bg-black/50 px-4 py-2 text-white opacity-0 transition-opacity group-hover:opacity-100">
                                                 Click to enlarge
                                             </span>
                                         </div>
@@ -263,17 +376,21 @@ export default function Show({ device }: { device: Device }) {
                                 </CardHeader>
                                 <CardContent>
                                     <div
-                                        className="relative cursor-pointer group overflow-hidden rounded-lg border bg-muted"
-                                        onClick={() => setProcessedImageDialogOpen(true)}
+                                        className="group relative cursor-pointer overflow-hidden rounded-lg border bg-muted"
+                                        onClick={() =>
+                                            setProcessedImageDialogOpen(true)
+                                        }
                                     >
                                         <img
-                                            src={device.last_processed_image_url}
+                                            src={
+                                                device.last_processed_image_url
+                                            }
                                             alt={`Last processed image from ${device.title}`}
-                                            className="w-full h-auto object-contain max-h-96 transition-transform group-hover:scale-105"
+                                            className="h-auto max-h-96 w-full object-contain transition-transform group-hover:scale-105"
                                             loading="lazy"
                                         />
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                                            <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 px-4 py-2 rounded-md">
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/10">
+                                            <span className="rounded-md bg-black/50 px-4 py-2 text-white opacity-0 transition-opacity group-hover:opacity-100">
                                                 Click to enlarge
                                             </span>
                                         </div>
@@ -297,7 +414,6 @@ export default function Show({ device }: { device: Device }) {
                     title={`Processed Image - ${device.title}`}
                     imageUrl={device.last_processed_image_url}
                 />
-
             </div>
         </AppLayout>
     );

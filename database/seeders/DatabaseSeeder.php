@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             ParkingZoneSeeder::class,
-            SystemTelemetrySeeder::class,
+            TelemetrySeeder::class,
         ]);
     }
 }

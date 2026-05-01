@@ -11,12 +11,12 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import devices from '@/routes/devices';
+import parkingZones from '@/routes/parking-zones';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { LandPlot, LayoutGrid, RadioReceiver } from 'lucide-react';
 import AppLogo from './app-logo';
-import parkingZones from '@/routes/parking-zones';
-import devices from '@/routes/devices';
 
 const mainNavItems: NavItem[] = [
     {
