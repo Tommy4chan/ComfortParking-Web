@@ -36,6 +36,7 @@ export default function Index({
     const [searchTerm, setSearchTerm] = useState('');
     const [occupancyFilter, setOccupancyFilter] = useState('all');
     const [reportFilter, setReportFilter] = useState('all');
+    const [paidFilter, setPaidFilter] = useState('all');
     const [sortBy, setSortBy] = useState('recent');
 
     const handleRowClick = (id: number) => {
@@ -77,7 +78,11 @@ export default function Index({
                 || (reportFilter === 'stale' && !!parkingZone.last_reported_at && !reportIsRecent(parkingZone.last_reported_at))
                 || (reportFilter === 'missing' && !parkingZone.last_reported_at);
 
-            return matchesSearch && matchesOccupancy && matchesReport;
+            const matchesPaid = paidFilter === 'all'
+                || (paidFilter === 'paid' && parkingZone.is_paid)
+                || (paidFilter === 'free' && !parkingZone.is_paid);
+
+            return matchesSearch && matchesOccupancy && matchesReport && matchesPaid;
         });
 
         return filtered.sort((a, b) => {
@@ -106,6 +111,7 @@ export default function Index({
     const hasActiveFilters = searchTerm.trim().length > 0
         || occupancyFilter !== 'all'
         || reportFilter !== 'all'
+        || paidFilter !== 'all'
         || sortBy !== 'recent';
 
     const highOccupancyCount = parkingZones.filter((parkingZone) => {
@@ -117,6 +123,7 @@ export default function Index({
     }).length;
 
     const recentlyReportedCount = parkingZones.filter((parkingZone) => reportIsRecent(parkingZone.last_reported_at)).length;
+    const paidZonesCount = parkingZones.filter((parkingZone) => parkingZone.is_paid).length;
 
     const totalAvailableSpots = parkingZones.reduce((sum, parkingZone) => sum + parkingZone.available_spots, 0);
 
@@ -124,6 +131,7 @@ export default function Index({
         setSearchTerm('');
         setOccupancyFilter('all');
         setReportFilter('all');
+        setPaidFilter('all');
         setSortBy('recent');
     };
 
@@ -149,6 +157,17 @@ export default function Index({
                         </div>
 
                         <div className="grid w-full gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-3">
+                            <Select value={paidFilter} onValueChange={setPaidFilter}>
+                                <SelectTrigger className="w-full xl:w-40">
+                                    <SelectValue placeholder="Paid / Free" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All zones</SelectItem>
+                                    <SelectItem value="paid">Paid only</SelectItem>
+                                    <SelectItem value="free">Free only</SelectItem>
+                                </SelectContent>
+                            </Select>
+
                             <Select value={occupancyFilter} onValueChange={setOccupancyFilter}>
                                 <SelectTrigger className="w-full xl:w-48">
                                     <SelectValue placeholder="Occupancy" />
@@ -214,6 +233,9 @@ export default function Index({
                         <Badge className="border-slate-700 bg-slate-900 text-slate-300">
                             Reported in 24h: {recentlyReportedCount}
                         </Badge>
+                        <Badge className="border-yellow-800 bg-yellow-950 text-yellow-200">
+                            Paid zones: {paidZonesCount}
+                        </Badge>
                         {hasActiveFilters && (
                             <Badge className="border-violet-800 bg-violet-950 text-violet-200">
                                 Filters active
@@ -249,7 +271,14 @@ export default function Index({
                                         className="cursor-pointer hover:bg-muted/50"
                                     >
                                         <TableCell className="font-mono text-sm">{parkingZone.id}</TableCell>
-                                        <TableCell className="font-medium">{parkingZone.title}</TableCell>
+                                        <TableCell className="font-medium">
+                                            <span>{parkingZone.title}</span>
+                                            {parkingZone.is_paid && (
+                                                <Badge className="ml-2 border-yellow-800 bg-yellow-950 text-yellow-200 text-xs">
+                                                    Paid
+                                                </Badge>
+                                            )}
+                                        </TableCell>
                                         <TableCell className="text-center">{parkingZone.total_spots}</TableCell>
                                         <TableCell className="text-center">{parkingZone.used_spots}</TableCell>
                                         <TableCell className="text-center">

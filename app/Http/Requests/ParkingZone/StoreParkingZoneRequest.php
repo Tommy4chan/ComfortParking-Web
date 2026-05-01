@@ -26,6 +26,8 @@ class StoreParkingZoneRequest extends FormRequest
             'description' => 'nullable|string',
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
+            'is_paid' => 'boolean',
+            'payment_url' => 'nullable|url|max:2048',
         ];
     }
 }

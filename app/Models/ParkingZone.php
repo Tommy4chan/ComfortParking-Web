@@ -14,12 +14,18 @@ class ParkingZone extends Model
     protected $fillable = [
         'title',
         'description',
+        'is_paid',
+        'payment_url',
         'location',
     ];
 
-    protected $casts = [
-        'location' => Point::class,
-    ];
+    protected function casts(): array
+    {
+        return [
+            'location' => Point::class,
+            'is_paid' => 'boolean',
+        ];
+    }
 
     protected $appends = [
         'latitude',

@@ -10,7 +10,6 @@ use Inertia\Inertia;
 
 class ParkingZoneController extends Controller
 {
-
     public function index()
     {
         $parkingZones = ParkingZone::query()
@@ -40,6 +39,8 @@ class ParkingZoneController extends Controller
         ParkingZone::create([
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
+            'is_paid' => $validated['is_paid'] ?? false,
+            'payment_url' => $validated['payment_url'] ?? null,
             'location' => $location,
         ]);
 
@@ -54,15 +55,14 @@ class ParkingZoneController extends Controller
             ->findOrFail($id);
 
         return Inertia::render('parkingZones/show', [
-            'parkingZone' => $parkingZone
+            'parkingZone' => $parkingZone,
         ]);
     }
-
 
     public function edit(ParkingZone $parkingZone)
     {
         return Inertia::render('parkingZones/edit', [
-            'parkingZone' => $parkingZone
+            'parkingZone' => $parkingZone,
         ]);
     }
 

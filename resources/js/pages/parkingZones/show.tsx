@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, ExternalLink } from 'lucide-react';
 import ActionButtons from '@/components/custom-ui/actionButtons';
 import DeviceTable from '@/components/custom-ui/deviceTable';
 import ListLayout from '@/layouts/list/layout';
@@ -65,6 +65,32 @@ export default function Show({ parkingZone }: { parkingZone: ParkingZone }) {
                                 <p className="text-base">
                                     <FormattedDate date={parkingZone.last_reported_at} format="with-timezone" />
                                 </p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-sm font-medium text-muted-foreground">Payment</p>
+                                <div className="flex items-center gap-2">
+                                    {parkingZone.is_paid ? (
+                                        <Badge className="border-yellow-800 bg-yellow-950 text-yellow-200">
+                                            Paid
+                                        </Badge>
+                                    ) : (
+                                        <Badge className="border-emerald-800 bg-emerald-950 text-emerald-200">
+                                            Free
+                                        </Badge>
+                                    )}
+                                    {parkingZone.is_paid && parkingZone.payment_url && (
+                                        <a
+                                            href={parkingZone.payment_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            <Button variant="outline" size="sm" type="button">
+                                                <ExternalLink className="size-3.5 mr-1" />
+                                                Payment page
+                                            </Button>
+                                        </a>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </CardContent>

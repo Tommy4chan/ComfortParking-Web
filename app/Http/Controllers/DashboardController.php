@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Device;
 use App\Models\ChildDevice;
+use App\Models\Device;
 use App\Models\ParkingZone;
 use App\Models\SystemTelemetry;
 use Inertia\Inertia;
@@ -14,13 +14,13 @@ class DashboardController extends Controller
     public function index(): Response
     {
         $zones = ParkingZone::withParkingStats()->get();
-        
+
         $topLoadedZones = $zones->map(function ($zone) {
             $total = (int) ($zone->total_spots ?? 0);
             $used = (int) ($zone->used_spots ?? 0);
             $available = max(0, $total - $used);
             $occupancy = $total > 0 ? round(($used / $total) * 100) : 0;
-            
+
             return [
                 'id' => $zone->id,
                 'zone' => $zone->title,
@@ -33,7 +33,7 @@ class DashboardController extends Controller
 
         $devices = Device::all();
         $childDevices = ChildDevice::with('device')->get();
-        
+
         $deviceAlerts = [];
         $healthStats = [
             'online' => 0,
@@ -48,7 +48,7 @@ class DashboardController extends Controller
 
             if ($status !== 'online') {
                 $deviceAlerts[] = [
-                    'id' => 'dev-' . $device->id,
+                    'id' => 'dev-'.$device->id,
                     'device_id' => $device->id,
                     'type' => 'device',
                     'source' => $device->title,
@@ -67,11 +67,11 @@ class DashboardController extends Controller
 
             if ($status !== 'online') {
                 $childDeviceAlerts[] = [
-                    'id' => 'child-' . $child->id,
+                    'id' => 'child-'.$child->id,
                     'device_id' => $child->device_id,
                     'child_id' => $child->id,
                     'type' => 'child',
-                    'source' => ($child->device ? $child->device->title : 'Unknown Device') . ' (Child #' . $child->id . ')',
+                    'source' => ($child->device ? $child->device->title : 'Unknown Device').' (Child #'.$child->id.')',
                     'severity' => $status === 'offline' ? 'error' : 'warning',
                     'kind' => $status === 'low_battery' ? 'low_battery' : ($status === 'offline' ? 'offline' : 'heartbeat_missing'),
                     'message' => $this->getAlertMessage($status, $child),
@@ -83,11 +83,9 @@ class DashboardController extends Controller
         $totalSpots = $zones->sum('total_spots');
         $usedSpots = $zones->sum('used_spots');
 
-        $telemetry = SystemTelemetry::orderBy('recorded_at', 'desc')
-            ->take(24)
+        $telemetry = SystemTelemetry::where('recorded_at', '>=', now()->subHours(24))
+            ->orderBy('recorded_at', 'asc')
             ->get()
-            ->reverse()
-            ->values()
             ->map(function ($t) {
                 return [
                     'hour' => $t->recorded_at->format('H:00'),
@@ -114,21 +112,22 @@ class DashboardController extends Controller
             'usageStats' => [
                 'total' => $totalSpots,
                 'used' => $usedSpots,
-                'free' => max(0, $totalSpots - $usedSpots)
+                'free' => max(0, $totalSpots - $usedSpots),
             ],
             'zoneOccupancyList' => $topLoadedZones->take(10), // up to 10 for bar chart
-            'telemetry24h' => $telemetry
+            'telemetry24h' => $telemetry,
         ]);
     }
 
     private function getAlertMessage(string $status, $model): string
     {
         if ($status === 'offline') {
-            return 'Device is completely offline. ' . ($model->last_reported_at ? 'Last seen ' . $model->last_reported_at->diffForHumans() . '.' : 'Never reported.');
+            return 'Device is completely offline. '.($model->last_reported_at ? 'Last seen '.$model->last_reported_at->diffForHumans().'.' : 'Never reported.');
         }
         if ($status === 'low_battery') {
-            return 'Battery level is critical (' . number_format($model->battery_voltage / 1000, 2) . 'V). Needs replacement soon.';
+            return 'Battery level is critical ('.number_format($model->battery_voltage / 1000, 2).'V). Needs replacement soon.';
         }
+
         return 'Device is experiencing connectivity warnings or delayed heartbeats.';
     }
 }

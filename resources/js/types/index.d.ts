@@ -48,6 +48,8 @@ export interface ParkingZone {
     description: string;
     latitude: number;
     longitude: number;
+    is_paid: boolean;
+    payment_url: string | null;
     total_spots: number;
     used_spots: number;
     available_spots: number;

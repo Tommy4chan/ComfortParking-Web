@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\ParkingZone;
 
-use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateParkingZoneRequest extends FormRequest
 {
@@ -27,6 +27,8 @@ class UpdateParkingZoneRequest extends FormRequest
             'description' => 'nullable|string|max:1024',
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
+            'is_paid' => 'boolean',
+            'payment_url' => 'nullable|url|max:2048',
         ];
     }
 }

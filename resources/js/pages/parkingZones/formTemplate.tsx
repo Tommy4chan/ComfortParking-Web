@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Form } from '@inertiajs/react';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { useState } from 'react';
 
 type FormTemplateProps = {
     parkingZone?: ParkingZone;
@@ -15,13 +17,15 @@ type FormTemplateProps = {
 };
 
 const FormTemplate = ({ parkingZone, url, method }: FormTemplateProps) => {
+    const [isPaid, setIsPaid] = useState(parkingZone?.is_paid ?? false);
+
     return (
         <Card className="w-full max-w-2xl mx-auto">
             <CardHeader>
                 <CardTitle>{parkingZone ? 'Edit Parking Zone' : 'Create Parking Zone'}</CardTitle>
                 <CardDescription>
-                    {parkingZone 
-                        ? 'Update the parking zone information below' 
+                    {parkingZone
+                        ? 'Update the parking zone information below'
                         : 'Fill in the details to create a new parking zone'}
                 </CardDescription>
             </CardHeader>
@@ -98,6 +102,45 @@ const FormTemplate = ({ parkingZone, url, method }: FormTemplateProps) => {
                                         />
                                         <InputError message={errors.longitude} />
                                     </div>
+                                </div>
+
+                                <div className="rounded-lg border p-4 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label htmlFor="is_paid" className="text-base">
+                                                Paid Parking Zone
+                                            </Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                Mark this zone as requiring payment to park
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            id="is_paid"
+                                            checked={isPaid}
+                                            onCheckedChange={setIsPaid}
+                                        />
+                                        <input type="hidden" name="is_paid" value={isPaid ? '1' : '0'} />
+                                    </div>
+
+                                    {isPaid && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="payment_url">
+                                                Payment / Pricing URL
+                                            </Label>
+                                            <Input
+                                                id="payment_url"
+                                                type="url"
+                                                name="payment_url"
+                                                defaultValue={parkingZone?.payment_url || ''}
+                                                placeholder="https://example.com/pay"
+                                                className={errors.payment_url ? 'border-destructive' : ''}
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                                Optional link where users can pay or view pricing information
+                                            </p>
+                                            <InputError message={errors.payment_url} />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
