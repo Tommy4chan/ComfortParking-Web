@@ -27,6 +27,21 @@ services:
     depends_on:
       - app
 
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: analparking_laravel
+    container_name: analparking_scheduler
+    restart: unless-stopped
+    command: php artisan schedule:work
+    volumes:
+      - .:/var/www
+    networks:
+      - laravel-net
+    depends_on:
+      - app
+
   nginx:
     image: nginx:alpine
     container_name: laravel_nginx

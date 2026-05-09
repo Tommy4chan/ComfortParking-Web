@@ -20,7 +20,7 @@ jobs:
         cd /DATA/AppData/analparking.top
         sudo docker compose up -d --build
 
-    - name: Restart queue worker
+    - name: Restart background services
       run: |
         cd /DATA/AppData/analparking.top
-        sudo docker compose restart queue
+        sudo docker compose restart queue scheduler
