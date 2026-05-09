@@ -22,20 +22,26 @@ class ParkingZoneController extends Controller
         $validated = $request->validated();
 
         // Create envelope (bounding box) from coordinates
-        $parkingZones = ParkingZone::select(['id', 'title', 'description', 'location'])
-            ->whereRaw("
+        $query = ParkingZone::select(['id', 'title', 'description', 'is_paid', 'payment_url', 'location'])
+            ->whereRaw('
                 ST_Within(
                     location::geometry,
                     ST_MakeEnvelope(?, ?, ?, ?, 4326)
                 )
-            ", [
+            ', [
                 $validated['min_lng'],
                 $validated['min_lat'],
                 $validated['max_lng'],
-                $validated['max_lat']
+                $validated['max_lat'],
             ])
-            ->withParkingStats()
-            ->get();
+            ->withParkingStats();
+
+        if (isset($validated['payment_type']) && $validated['payment_type'] !== 'all') {
+            $isPaid = $validated['payment_type'] === 'paid';
+            $query->where('is_paid', $isPaid);
+        }
+
+        $parkingZones = $query->get();
 
         return response()->json(
             $parkingZones,
@@ -50,16 +56,21 @@ class ParkingZoneController extends Controller
 
         $locationAsGeography = new AsGeography('location');
 
-        $parkingZones = ParkingZone::select(['id', 'title', 'description', 'location'])
+        $query = ParkingZone::select(['id', 'title', 'description', 'is_paid', 'payment_url', 'location'])
             ->addSelect(ST::distance($locationAsGeography, $userLocation)->as('distance'))
             ->where(ST::distance($locationAsGeography, $userLocation), '<=', $validated['radius'])
             ->withParkingStats()
-            ->orderBy(ST::distance($locationAsGeography, $userLocation))
-            ->get();
+            ->orderBy(ST::distance($locationAsGeography, $userLocation));
+
+        if (isset($validated['payment_type']) && $validated['payment_type'] !== 'all') {
+            $isPaid = $validated['payment_type'] === 'paid';
+            $query->where('is_paid', $isPaid);
+        }
+
+        $parkingZones = $query->get();
 
         return response()->json(
             $parkingZones,
         );
     }
-
 }

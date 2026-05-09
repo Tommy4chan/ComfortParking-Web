@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\ChildDevice;
 use App\Models\Device;
-use App\Models\ParkingZone;
 use App\Models\DeviceTelemetryHourly;
+use App\Models\ParkingZone;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -84,28 +84,68 @@ class DashboardController extends Controller
         $usedSpots = $zones->sum('used_spots');
 
         $range = request('range', '24h');
-        
-        $hoursBack = 24;
-        if ($range === '7d') $hoursBack = 24 * 7;
-        // 30d option removed as per user request
 
-        $telemetry = DeviceTelemetryHourly::where('scope', 'system')
-            ->where('hour_bucket', '>=', now()->subHours($hoursBack))
+        $hoursBack = 24;
+        if ($range === '7d') {
+            $hoursBack = 24 * 7;
+        }
+
+        $bucketMinutes = 15;
+        $start = now()->subHours($hoursBack)->floorMinutes($bucketMinutes);
+        $end = now()->floorMinutes($bucketMinutes);
+        $totalDeviceCount = $devices->count() + $childDevices->count();
+
+        $rawTelemetry = DeviceTelemetryHourly::where('scope', 'system')
+            ->where('hour_bucket', '>=', $start)
             ->orderBy('hour_bucket', 'asc')
-            ->get()
-            ->map(function ($t) use ($totalSpots, $range) {
-                $format = $range === '24h' ? 'H:00' : 'd M H:00';
-                return [
-                    'hour' => $t->hour_bucket->format($format),
+            ->get();
+
+        $telemetry = [];
+        $current = $start->copy();
+        $format = $range === '24h' ? 'H:i' : 'd M H:i';
+
+        // Map raw queries by bucket timestamp for O(1) lookup
+        $grouped = [];
+        foreach ($rawTelemetry as $t) {
+            $grouped[$t->hour_bucket->timestamp] = $t;
+        }
+
+        $lastKnown = null;
+
+        while ($current <= $end) {
+            $ts = $current->timestamp;
+
+            if (isset($grouped[$ts])) {
+                $t = $grouped[$ts];
+                $lastKnown = [
                     'usedSpots' => round($t->avg_used_spots),
                     'freeSpots' => max(0, $totalSpots - round($t->avg_used_spots)),
-                    'online' => round($t->online_device_minutes / 60), 
-                    'warning' => 0, 
-                    'offline' => round($t->offline_device_minutes / 60),
+                    'online' => round($t->online_device_minutes / $bucketMinutes),
+                    'warning' => 0,
+                    'offline' => round($t->offline_device_minutes / $bucketMinutes),
                     'arrivals' => $t->total_arrivals,
                     'departures' => $t->total_departures,
                 ];
-            });
+                $item = $lastKnown;
+                $item['hour'] = $current->toIso8601String();
+                $telemetry[] = $item;
+            } else {
+                if ($lastKnown) {
+                    $item = $lastKnown;
+                    $item['hour'] = $current->toIso8601String();
+                    // No events -> no arrivals or departures
+                    $item['arrivals'] = 0;
+                    $item['departures'] = 0;
+                    // Missing data means offline
+                    $item['online'] = 0;
+                    $item['warning'] = 0;
+                    $item['offline'] = $totalDeviceCount;
+                    $telemetry[] = $item;
+                }
+            }
+
+            $current->addMinutes($bucketMinutes);
+        }
 
         return Inertia::render('dashboard', [
             'topLoadedZones' => $topLoadedZones,

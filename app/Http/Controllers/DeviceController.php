@@ -10,6 +10,7 @@ use Clickbar\Magellan\Data\Geometries\Point;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class DeviceController extends Controller
 {
@@ -66,12 +67,26 @@ class DeviceController extends Controller
         return redirect()->route('devices.show', $device->id);
     }
 
-    public function show(Device $device)
+    public function show(Request $request, Device $device): Response
     {
         $device->load(['parkingZone', 'childDevices']);
 
+        $range = $request->query('range', '24h');
+        $hoursBack = $range === '7d' ? 24 * 7 : 24;
+        $start = now()->subHours($hoursBack);
+        $end = now();
+
+        $snapshots = \App\Models\DeviceTelemetrySnapshot::where('device_id', $device->id)
+            ->where('recorded_at', '>=', $start)
+            ->orderBy('recorded_at', 'asc')
+            ->get();
+
+        $telemetry = \App\Utils\TelemetryUtils::padDeviceSnapshots($snapshots, $start, $end);
+
         return Inertia::render('devices/show', [
             'device' => $device,
+            'telemetry' => $telemetry,
+            'currentRange' => $range,
         ]);
     }
 

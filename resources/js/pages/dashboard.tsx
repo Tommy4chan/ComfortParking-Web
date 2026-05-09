@@ -208,6 +208,17 @@ export default function Dashboard() {
         fontSize: '12px',
     };
 
+    const formatChartTime = (value: string | number) => {
+        const date = new Date(value);
+        if (Number.isNaN(date.valueOf())) return String(value);
+        return date.toLocaleString([], {
+            month: currentRange === '7d' ? 'short' : undefined,
+            day: currentRange === '7d' ? 'numeric' : undefined,
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
     const containerVariants = {
         hidden: { opacity: 0 },
         show: {
@@ -361,9 +372,7 @@ export default function Dashboard() {
                                             vertical={false}
                                             stroke="rgba(255,255,255,0.05)"
                                         />
-                                        <XAxis
-                                            dataKey="hour"
-                                            tick={{
+                                        <XAxis dataKey="hour" tickFormatter={formatChartTime} tick={{
                                                 fill: 'rgba(255,255,255,0.4)',
                                                 fontSize: 10,
                                                 fontFamily: 'JetBrains Mono',
@@ -382,8 +391,7 @@ export default function Dashboard() {
                                             axisLine={false}
                                             width={30}
                                         />
-                                        <Tooltip
-                                            contentStyle={tooltipStyle}
+                                        <Tooltip labelFormatter={formatChartTime} contentStyle={tooltipStyle}
                                             itemStyle={{ color: '#38BDF8' }}
                                         />
                                         <Area
@@ -430,9 +438,7 @@ export default function Dashboard() {
                                             vertical={false}
                                             stroke="rgba(255,255,255,0.05)"
                                         />
-                                        <XAxis
-                                            dataKey="hour"
-                                            tick={{
+                                        <XAxis dataKey="hour" tickFormatter={formatChartTime} tick={{
                                                 fill: 'rgba(255,255,255,0.4)',
                                                 fontSize: 10,
                                                 fontFamily: 'JetBrains Mono',
@@ -451,7 +457,7 @@ export default function Dashboard() {
                                             axisLine={false}
                                             width={30}
                                         />
-                                        <Tooltip contentStyle={tooltipStyle} />
+                                        <Tooltip labelFormatter={formatChartTime} contentStyle={tooltipStyle} />
                                         <Line
                                             type="step"
                                             dataKey="online"
@@ -508,9 +514,7 @@ export default function Dashboard() {
                                             stroke="rgba(255,255,255,0.05)"
                                             strokeDasharray="3 3"
                                         />
-                                        <XAxis
-                                            dataKey="hour"
-                                            tick={{
+                                        <XAxis dataKey="hour" tickFormatter={formatChartTime} tick={{
                                                 fill: 'rgba(255,255,255,0.4)',
                                                 fontSize: 10,
                                                 fontFamily: 'JetBrains Mono',
@@ -529,7 +533,7 @@ export default function Dashboard() {
                                             axisLine={false}
                                             width={30}
                                         />
-                                        <Tooltip contentStyle={tooltipStyle} />
+                                        <Tooltip labelFormatter={formatChartTime} contentStyle={tooltipStyle} />
                                         <Line
                                             type="monotone"
                                             dataKey="arrivals"

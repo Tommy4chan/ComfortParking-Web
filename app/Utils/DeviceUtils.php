@@ -23,20 +23,20 @@ class DeviceUtils
             return 'offline';
         }
 
-        $minutesSinceReport = now()->diffInMinutes($lastReportedAt);
-        
+        $minutesSinceReport = now()->diffInMinutes($lastReportedAt, true);
+
         if ($minutesSinceReport > 60) {
             return 'offline';
         }
-        
+
         if ($batteryVoltage !== null && $batteryVoltage < 3100) {
             return 'warning';
         }
-        
+
         if ($minutesSinceReport > 30) {
             return 'warning';
         }
-        
+
         return 'online';
     }
 }

@@ -25,6 +25,7 @@ class ParkingZoneNearbyRequest extends FormRequest
             'lat' => 'required|numeric|between:-90,90',
             'lng' => 'required|numeric|between:-180,180',
             'radius' => 'required|numeric|min:1|max:10000',
+            'payment_type' => 'nullable|string|in:paid,free,all',
         ];
     }
 }

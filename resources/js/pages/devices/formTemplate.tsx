@@ -90,6 +90,10 @@ const FormTemplate = ({
         );
     };
 
+    const leftColumnClass = `space-y-6 ${
+        isImageRecEnabled ? 'xl:col-span-4' : 'xl:col-span-12'
+    }`;
+
     return (
         <Card className="w-full">
             <CardHeader className="border-b bg-muted/20">
@@ -138,7 +142,7 @@ const FormTemplate = ({
 
                             <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
                                 {/* Left Column: Basic Details */}
-                                <div className="space-y-6 xl:col-span-4">
+                                <div className={leftColumnClass}>
                                     <div className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
                                         <h3 className="border-b pb-2 text-lg font-semibold">
                                             Device Details
@@ -289,6 +293,23 @@ const FormTemplate = ({
                                             />
                                         </div>
                                     </div>
+
+                                    {!isImageRecEnabled && (
+                                        <div className="flex items-start gap-4 rounded-xl border bg-muted/20 p-5 text-sm text-muted-foreground shadow-sm">
+                                            <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                                                <Crosshair className="h-5 w-5" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-base font-semibold text-foreground">
+                                                    Visual mapper disabled
+                                                </p>
+                                                <p>
+                                                    Turn on image recognition to unlock the
+                                                    visual zone mapper and coordinate editor.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {isImageRecEnabled && (
                                         <div className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">

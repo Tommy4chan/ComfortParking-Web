@@ -7,6 +7,7 @@ import NothingFoundList from '@/components/custom-ui/nothingFoundList';
 import ParkingSpotsGrid from '@/components/custom-ui/parkingSpotsGrid';
 import SpotStatusBadge from '@/components/custom-ui/spotStatusBadge';
 import StatusBadge from '@/components/custom-ui/statusBadge';
+import TelemetryCharts from '@/components/custom-ui/telemetryCharts';
 import {
     Card,
     CardContent,
@@ -29,7 +30,7 @@ import childDevices from '@/routes/child-devices';
 import devices from '@/routes/devices';
 import parkingZones from '@/routes/parking-zones';
 import { Device, type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { MapPin } from 'lucide-react';
 import { useState } from 'react';
 
@@ -41,10 +42,16 @@ const getDetailedStatusMessage = (status: string, battery: number) => {
     return 'Device is experiencing connectivity warnings or delayed heartbeats.';
 };
 
-export default function Show({ device }: { device: Device }) {
+export default function Show({ device, telemetry, currentRange = '24h' }: { device: Device, telemetry: any[], currentRange?: '24h' | '7d' }) {
     const [imageDialogOpen, setImageDialogOpen] = useState(false);
     const [processedImageDialogOpen, setProcessedImageDialogOpen] =
         useState(false);
+    const [timeframe, setTimeframe] = useState<'24h' | '7d'>(currentRange as '24h' | '7d');
+
+    const handleRangeChange = (range: '24h' | '7d') => {
+        setTimeframe(range);
+        router.get(devices.show(device.id).url, { range }, { preserveScroll: true, preserveState: false });
+    };
 
     const breadcrumbs: BreadcrumbItem[] = [
         {
@@ -210,6 +217,42 @@ export default function Show({ device }: { device: Device }) {
                                 </p>
                             )}
                         </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="space-y-3">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <CardTitle className="text-xl">
+                                    Device Telemetry
+                                </CardTitle>
+                                <CardDescription>
+                                    Visual representation of spot usage, battery patterns, and network stability.
+                                </CardDescription>
+                            </div>
+                            <div className="flex items-center bg-muted/40 rounded-lg p-1 border border-white/5 backdrop-blur-md">
+                                <button
+                                    onClick={() => handleRangeChange('24h')}
+                                    className={`px-4 py-1.5 rounded-md text-xs font-mono font-bold tracking-tight transition-all duration-200 ${timeframe === '24h' ? 'bg-primary text-primary-foreground shadow-[0_0_10px_rgba(var(--primary),0.3)]' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}
+                                >
+                                    24H
+                                </button>
+                                <button
+                                    onClick={() => handleRangeChange('7d')}
+                                    className={`px-4 py-1.5 rounded-md text-xs font-mono font-bold tracking-tight transition-all duration-200 ${timeframe === '7d' ? 'bg-primary text-primary-foreground shadow-[0_0_10px_rgba(var(--primary),0.3)]' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}
+                                >
+                                    7D
+                                </button>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <TelemetryCharts
+                            data={telemetry}
+                            timeframe={timeframe}
+                            scope="device"
+                        />
                     </CardContent>
                 </Card>
 

@@ -9,7 +9,6 @@ use App\Models\ParkingEvent;
 use App\Models\ParkingZone;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class AggregateTelemetry extends Command
 {
@@ -30,61 +29,108 @@ class AggregateTelemetry extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(): void
     {
         $this->info('Starting telemetry aggregation...');
-        
-        // Find the earliest snapshot that hasn't been aggregated yet, or just re-aggregate the last 2 hours to be safe
-        // For this seeder/demo, we'll just aggregate everything that exists in snapshots
-        
-        $oldestSnapshot = DeviceTelemetrySnapshot::orderBy('recorded_at', 'asc')->first();
-        if (!$oldestSnapshot) {
-            $this->info('No snapshots found.');
-            return;
+
+        $bucketMinutes = 15;
+
+        // Determine the start of the aggregation window.
+        // Resume from the latest already-aggregated bucket (minus 1 hour overlap for safety),
+        // so we never re-process the entire history on every run.
+        $latestAggregated = DeviceTelemetryHourly::where('scope', 'device')
+            ->max('hour_bucket');
+
+        if ($latestAggregated) {
+            // Re-process the last 1 hour to catch any snapshots that arrived late.
+            $startBucket = $this->floorToBucket(
+                Carbon::parse($latestAggregated)->subHour(),
+                $bucketMinutes
+            );
+            $this->info("Resuming from {$startBucket} (latest aggregated: {$latestAggregated}).");
+        } else {
+            // First run: start from the oldest snapshot.
+            $oldestSnapshot = DeviceTelemetrySnapshot::orderBy('recorded_at', 'asc')->first();
+            if (! $oldestSnapshot) {
+                $this->info('No snapshots found — nothing to aggregate.');
+
+                return;
+            }
+            $startBucket = $this->floorToBucket($oldestSnapshot->recorded_at, $bucketMinutes);
+            $this->info("First run, starting from oldest snapshot: {$startBucket}.");
         }
 
-        $startHour = $oldestSnapshot->recorded_at->startOfHour();
-        $endHour = Carbon::now()->startOfHour();
+        $endBucket = $this->floorToBucket(Carbon::now(), $bucketMinutes);
+        $currentBucket = $startBucket->copy();
 
-        $currentHour = $startHour->copy();
-        
-        while ($currentHour <= $endHour) {
-            $nextHour = $currentHour->copy()->addHour();
-            
-            // 1. Device-level aggregation
-            $this->aggregateDeviceLevel($currentHour, $nextHour);
-            
-            // 2. Zone-level aggregation
-            $this->aggregateZoneLevel($currentHour, $nextHour);
-            
-            // 3. System-level aggregation
-            $this->aggregateSystemLevel($currentHour, $nextHour);
-            
-            $currentHour->addHour();
+        $processed = 0;
+        while ($currentBucket <= $endBucket) {
+            $nextBucket = $currentBucket->copy()->addMinutes($bucketMinutes);
+
+            $this->aggregateDeviceLevel($currentBucket, $nextBucket);
+            $this->aggregateZoneLevel($currentBucket, $nextBucket);
+            $this->aggregateSystemLevel($currentBucket, $nextBucket);
+
+            $currentBucket->addMinutes($bucketMinutes);
+            $processed++;
         }
-        
-        // Prune raw snapshots older than 7 days
+
+        $this->info("Processed {$processed} buckets.");
+
+        // Prune raw snapshots older than 7 days.
         $pruned = DeviceTelemetrySnapshot::where('recorded_at', '<', Carbon::now()->subDays(7))->delete();
-        $this->info("Pruned $pruned old snapshots.");
-        
+        $this->info("Pruned {$pruned} old snapshots.");
+
         $this->info('Telemetry aggregation complete.');
     }
 
     private function aggregateDeviceLevel(Carbon $start, Carbon $end)
     {
+        $bucketMinutes = $start->diffInMinutes($end, true);
         $devices = Device::all();
         foreach ($devices as $device) {
             $snapshots = DeviceTelemetrySnapshot::where('device_id', $device->id)
                 ->whereBetween('recorded_at', [$start, $end])
                 ->get();
-                
-            if ($snapshots->isEmpty()) continue;
+
+            if ($snapshots->isEmpty()) {
+                $totalSpots = $device->parking_spots_count ?? 0;
+                $usedSpots = $device->used_parking_spots ?? 0;
+                $avgOccupancy = $totalSpots > 0 ? ($usedSpots / $totalSpots) * 100 : 0;
+                $status = $this->getStatusAt(
+                    $device->last_reported_at,
+                    $device->battery_voltage,
+                    $end
+                );
+
+                DeviceTelemetryHourly::updateOrCreate(
+                    [
+                        'scope' => 'device',
+                        'device_id' => $device->id,
+                        'parking_zone_id' => $device->parking_zone_id,
+                        'hour_bucket' => $start,
+                    ],
+                    [
+                        'avg_used_spots' => $usedSpots,
+                        'max_used_spots' => $usedSpots,
+                        'min_used_spots' => $usedSpots,
+                        'avg_occupancy_pct' => $avgOccupancy,
+                        'total_arrivals' => 0,
+                        'total_departures' => 0,
+                        'avg_response_time_ms' => null,
+                        'online_device_minutes' => $status === 'online' ? $bucketMinutes : 0,
+                        'offline_device_minutes' => $status === 'offline' ? $bucketMinutes : 0,
+                    ]
+                );
+
+                continue;
+            }
 
             $arrivals = ParkingEvent::where('device_id', $device->id)
                 ->where('event_type', 'arrival')
                 ->whereBetween('occurred_at', [$start, $end])
                 ->count();
-                
+
             $departures = ParkingEvent::where('device_id', $device->id)
                 ->where('event_type', 'departure')
                 ->whereBetween('occurred_at', [$start, $end])
@@ -127,24 +173,28 @@ class AggregateTelemetry extends Command
                 ->where('parking_zone_id', $zone->id)
                 ->where('hour_bucket', $start)
                 ->get();
-                
-            if ($deviceAggs->isEmpty()) continue;
+
+            if ($deviceAggs->isEmpty()) {
+                continue;
+            }
 
             $totalAvgUsed = $deviceAggs->sum('avg_used_spots');
             $totalMaxUsed = $deviceAggs->sum('max_used_spots'); // simplistic approximation
             $totalMinUsed = $deviceAggs->sum('min_used_spots');
-            
+
             // Re-calculate real avg occupancy from raw snapshots to be accurate
             $snapshots = DeviceTelemetrySnapshot::where('parking_zone_id', $zone->id)
                 ->whereBetween('recorded_at', [$start, $end])
                 ->get();
-                
-            if ($snapshots->isEmpty()) continue;
-            
-            // Group by time roughly (we can average all snapshots for the zone)
-            $avgOccupancy = $snapshots->avg(function ($s) {
-                return $s->total_spots > 0 ? ($s->used_spots / $s->total_spots) * 100 : 0;
-            });
+
+            // Prefer snapshot-based occupancy when available; fall back to device rollups.
+            if ($snapshots->isEmpty()) {
+                $avgOccupancy = $deviceAggs->avg('avg_occupancy_pct');
+            } else {
+                $avgOccupancy = $snapshots->avg(function ($s) {
+                    return $s->total_spots > 0 ? ($s->used_spots / $s->total_spots) * 100 : 0;
+                });
+            }
 
             DeviceTelemetryHourly::updateOrCreate(
                 [
@@ -173,8 +223,10 @@ class AggregateTelemetry extends Command
         $zoneAggs = DeviceTelemetryHourly::where('scope', 'zone')
             ->where('hour_bucket', $start)
             ->get();
-            
-        if ($zoneAggs->isEmpty()) return;
+
+        if ($zoneAggs->isEmpty()) {
+            return;
+        }
 
         DeviceTelemetryHourly::updateOrCreate(
             [
@@ -196,6 +248,36 @@ class AggregateTelemetry extends Command
             ]
         );
     }
+
+    private function getStatusAt(?Carbon $lastReportedAt, ?int $batteryVoltage, Carbon $asOf): string
+    {
+        if (! $lastReportedAt) {
+            return 'offline';
+        }
+
+        $minutesSinceReport = $asOf->diffInMinutes($lastReportedAt, true);
+
+        if ($minutesSinceReport > 60) {
+            return 'offline';
+        }
+
+        if ($batteryVoltage !== null && $batteryVoltage < 3100) {
+            return 'warning';
+        }
+
+        if ($minutesSinceReport > 30) {
+            return 'warning';
+        }
+
+        return 'online';
+    }
+
+    private function floorToBucket(Carbon $time, int $minutes): Carbon
+    {
+        $bucket = $time->copy()->second(0)->microsecond(0);
+        $minute = (int) $bucket->minute;
+        $bucketMinute = intdiv($minute, $minutes) * $minutes;
+
+        return $bucket->minute($bucketMinute);
+    }
 }
-
-

@@ -21,10 +21,10 @@ class ParkingZoneBoundsRequest extends FormRequest
         $centerLng = $this->input('longitude');
         $latDelta = $this->input('latitudeDelta', 0);
         $lngDelta = $this->input('longitudeDelta', 0);
-        
+
         $latDelta = min($latDelta, self::MAX_LAT_DELTA);
         $lngDelta = min($lngDelta, self::MAX_LNG_DELTA);
-        
+
         $this->merge([
             'min_lat' => $centerLat - ($latDelta / 2),
             'max_lat' => $centerLat + ($latDelta / 2),
@@ -44,6 +44,7 @@ class ParkingZoneBoundsRequest extends FormRequest
             'max_lat' => 'sometimes|numeric',
             'min_lng' => 'sometimes|numeric',
             'max_lng' => 'sometimes|numeric',
+            'payment_type' => 'nullable|string|in:paid,free,all',
         ];
     }
 }

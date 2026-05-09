@@ -6,7 +6,9 @@ use App\Http\Requests\ParkingZone\StoreParkingZoneRequest;
 use App\Http\Requests\ParkingZone\UpdateParkingZoneRequest;
 use App\Models\ParkingZone;
 use Clickbar\Magellan\Data\Geometries\Point;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class ParkingZoneController extends Controller
 {
@@ -47,15 +49,29 @@ class ParkingZoneController extends Controller
         return redirect()->route('parking-zones.index');
     }
 
-    public function show(string $id)
+    public function show(Request $request, string $id): Response
     {
         $parkingZone = ParkingZone::query()
             ->withParkingStats()
             ->with('devices')
             ->findOrFail($id);
 
+        $range = $request->query('range', '24h');
+        $hoursBack = $range === '7d' ? 24 * 7 : 24;
+        $start = now()->subHours($hoursBack);
+        $end = now();
+
+        $snapshots = \App\Models\DeviceTelemetrySnapshot::where('parking_zone_id', $parkingZone->id)
+            ->where('recorded_at', '>=', $start)
+            ->orderBy('recorded_at', 'asc')
+            ->get();
+
+        $telemetry = \App\Utils\TelemetryUtils::padZoneSnapshots($snapshots, $start, $end);
+
         return Inertia::render('parkingZones/show', [
             'parkingZone' => $parkingZone,
+            'telemetry' => $telemetry,
+            'currentRange' => $range,
         ]);
     }
 

@@ -17,10 +17,18 @@ import ListLayout from '@/layouts/list/layout';
 import devices from '@/routes/devices';
 import parkingZones from '@/routes/parking-zones';
 import { ParkingZone, type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
+import { useState } from 'react';
+import TelemetryCharts from '@/components/custom-ui/telemetryCharts';
 import { ExternalLink } from 'lucide-react';
 
-export default function Show({ parkingZone }: { parkingZone: ParkingZone }) {
+export default function Show({ parkingZone, telemetry, currentRange = '24h' }: { parkingZone: ParkingZone, telemetry: any[], currentRange?: '24h' | '7d' }) {
+    const [timeframe, setTimeframe] = useState<'24h' | '7d'>(currentRange as '24h' | '7d');
+
+    const handleRangeChange = (range: '24h' | '7d') => {
+        setTimeframe(range);
+        router.get(parkingZones.show(parkingZone.id).url, { range }, { preserveScroll: true, preserveState: false });
+    };
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Parking Zones',
@@ -121,6 +129,42 @@ export default function Show({ parkingZone }: { parkingZone: ParkingZone }) {
                                 </div>
                             </div>
                         </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="space-y-3">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div>
+                                <CardTitle className="text-xl">
+                                    Zone Telemetry
+                                </CardTitle>
+                                <CardDescription>
+                                    Visual representation of spot usage, battery patterns, and network stability across all devices in this zone.
+                                </CardDescription>
+                            </div>
+                            <div className="flex items-center bg-muted/40 rounded-lg p-1 border border-white/5 backdrop-blur-md">
+                                <button
+                                    onClick={() => handleRangeChange('24h')}
+                                    className={`px-4 py-1.5 rounded-md text-xs font-mono font-bold tracking-tight transition-all duration-200 ${timeframe === '24h' ? 'bg-primary text-primary-foreground shadow-[0_0_10px_rgba(var(--primary),0.3)]' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}
+                                >
+                                    24H
+                                </button>
+                                <button
+                                    onClick={() => handleRangeChange('7d')}
+                                    className={`px-4 py-1.5 rounded-md text-xs font-mono font-bold tracking-tight transition-all duration-200 ${timeframe === '7d' ? 'bg-primary text-primary-foreground shadow-[0_0_10px_rgba(var(--primary),0.3)]' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}
+                                >
+                                    7D
+                                </button>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <TelemetryCharts
+                            data={telemetry}
+                            timeframe={timeframe}
+                            scope="zone"
+                        />
                     </CardContent>
                 </Card>
 

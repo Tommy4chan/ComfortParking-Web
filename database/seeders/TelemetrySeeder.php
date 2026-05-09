@@ -2,12 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\ChildDevice;
 use App\Models\Device;
-use App\Models\DeviceTelemetryHourly;
 use App\Models\DeviceTelemetrySnapshot;
 use App\Models\ParkingEvent;
-use App\Models\ParkingZone;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 
@@ -21,7 +18,7 @@ class TelemetrySeeder extends Seeder
         $devices = Device::with(['childDevices', 'parkingZone'])->get();
         $now = Carbon::now();
         $daysToSeed = 7;
-        
+
         $totalSnapshots = 0;
         $totalEvents = 0;
 
@@ -32,40 +29,48 @@ class TelemetrySeeder extends Seeder
         foreach ($devices as $device) {
             $childDevices = $device->childDevices;
             $zone = $device->parkingZone;
-            
-            if (!$zone || $childDevices->isEmpty()) {
+
+            if (! $zone) {
                 continue;
             }
 
-            $totalSpots = $childDevices->count();
-            
+            $totalSpots = $device->total_parking_spots;
+
+            if ($totalSpots === 0) {
+                continue;
+            }
+
             for ($daysBack = $daysToSeed; $daysBack >= 0; $daysBack--) {
                 for ($hour = 0; $hour < 24; $hour++) {
                     if ($daysBack === 0 && $hour > $now->hour) {
                         break;
                     }
-                    
+
                     for ($minute = 0; $minute < 60; $minute += 5) {
                         if ($daysBack === 0 && $hour === $now->hour && $minute > $now->minute) {
                             break;
                         }
 
                         $recordedAt = Carbon::now()->subDays($daysBack)->startOfDay()->addHours($hour)->addMinutes($minute);
-                        
+
                         $morningPeak = sin((($hour - 7) / 24) * M_PI * 2) * 0.4;
                         $eveningPeak = sin((($hour - 17) / 24) * M_PI * 2) * 0.3;
                         $baseLoad = 0.3;
                         $occupancyProbability = max(0.1, min(0.9, $baseLoad + $morningPeak + $eveningPeak));
                         $occupancyProbability += (rand(-10, 10) / 100);
                         $occupancyProbability = max(0, min(1, $occupancyProbability));
-                        
+
                         $usedSpots = round($totalSpots * $occupancyProbability);
                         $batteryVoltage = 4200 - (($daysToSeed - $daysBack) * 20);
-                        
+
                         $status = 'online';
-                        if (rand(1, 100) > 95) $status = 'warning';
-                        if (rand(1, 100) > 98) $status = 'offline';
-                        
+                        if (rand(1, 100) > 95) {
+                            $status = 'warning';
+                        }
+                        if (rand(1, 100) > 98) {
+                            $status = 'offline';
+                        }
+
                         $snapshots[] = [
                             'device_id' => $device->id,
                             'parking_zone_id' => $zone->id,
@@ -86,8 +91,8 @@ class TelemetrySeeder extends Seeder
                             $totalSnapshots += count($snapshots);
                             $snapshots = [];
                         }
-                        
-                        if (rand(1, 10) > 5) {
+
+                        if ($childDevices->isNotEmpty() && rand(1, 10) > 5) {
                             $child = $childDevices->random();
                             $events[] = [
                                 'child_device_id' => $child->id,
@@ -101,8 +106,8 @@ class TelemetrySeeder extends Seeder
                                 'updated_at' => $now,
                             ];
                         }
-                        
-                        if (rand(1, 10) > 6) {
+
+                        if ($childDevices->isNotEmpty() && rand(1, 10) > 6) {
                             $child = $childDevices->random();
                             $events[] = [
                                 'child_device_id' => $child->id,
@@ -127,17 +132,17 @@ class TelemetrySeeder extends Seeder
             }
         }
 
-        if (!empty($snapshots)) {
+        if (! empty($snapshots)) {
             DeviceTelemetrySnapshot::insert($snapshots);
             $totalSnapshots += count($snapshots);
         }
-        if (!empty($events)) {
+        if (! empty($events)) {
             ParkingEvent::insert($events);
             $totalEvents += count($events);
         }
-        
+
         $this->command->info("Generated $totalSnapshots snapshots and $totalEvents events.");
-        
+
         // Run aggregation command to populate hourlies
         $this->command->info('Running telemetry aggregation...');
         \Illuminate\Support\Facades\Artisan::call('telemetry:aggregate');

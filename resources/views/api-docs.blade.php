@@ -13,7 +13,6 @@
     body {
       margin: 0;
       padding: 0;
-      background-color: #0f172a; /* Tailwind bg-slate-900 */
       color: #f8fafc;
       font-family: ui-sans-serif, system-ui, sans-serif;
     }
@@ -27,7 +26,7 @@
 
     .docs-header {
       background: #0f172a;
-      padding: 2rem;
+      padding: 1rem;
       border-bottom: 1px solid #1e293b;
     }
     .back-btn {
