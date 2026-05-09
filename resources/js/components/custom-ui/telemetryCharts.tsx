@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import {
     LineChart,
+    ComposedChart,
     Line,
     XAxis,
     YAxis,
@@ -323,7 +324,7 @@ export default function TelemetryCharts({
                 </CardHeader>
                 <CardContent className="h-64 pt-0">
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={chartDataWithFlow}>
+                        <ComposedChart data={chartDataWithFlow}>
                             <defs>
                                 <linearGradient
                                     id="usedSpotsChart"
@@ -369,13 +370,11 @@ export default function TelemetryCharts({
                                 axisLine={false}
                                 width={30}
                             />
-                            <Tooltip
-                                contentStyle={tooltipStyle}
-                                itemStyle={{ color: '#38BDF8' }}
-                            />
+                            <Tooltip contentStyle={tooltipStyle} />
                             <Area
                                 type="monotone"
                                 dataKey="used_spots"
+                                name="Used Spots"
                                 stroke="#38BDF8"
                                 fill="url(#usedSpotsChart)"
                                 strokeWidth={3}
@@ -385,8 +384,9 @@ export default function TelemetryCharts({
                             <Line
                                 type="monotone"
                                 dataKey="total_spots"
+                                name="Total Spots"
                                 stroke="#64748b"
-                                strokeDasharray="3 3"
+                                strokeDasharray="5 4"
                                 strokeWidth={2}
                                 dot={false}
                                 activeDot={{ r: 4 }}
@@ -398,7 +398,7 @@ export default function TelemetryCharts({
                                 fill="rgba(0,0,0,0.35)"
                                 tickFormatter={() => ''}
                             />
-                        </AreaChart>
+                        </ComposedChart>
                     </ResponsiveContainer>
                 </CardContent>
             </Card>

@@ -24,6 +24,7 @@ import {
     Area,
     AreaChart,
     CartesianGrid,
+    ComposedChart,
     Line,
     LineChart,
     ResponsiveContainer,
@@ -75,6 +76,7 @@ interface DashboardProps {
     telemetry24h: {
         hour: string;
         usedSpots: number;
+        totalSpots: number;
         freeSpots: number;
         online: number;
         warning: number;
@@ -347,7 +349,7 @@ export default function Dashboard() {
                             </CardHeader>
                             <CardContent className="h-64 pt-0">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={telemetry24h}>
+                                    <ComposedChart data={telemetry24h}>
                                         <defs>
                                             <linearGradient
                                                 id="usedSpots"
@@ -391,12 +393,11 @@ export default function Dashboard() {
                                             axisLine={false}
                                             width={30}
                                         />
-                                        <Tooltip labelFormatter={formatChartTime} contentStyle={tooltipStyle}
-                                            itemStyle={{ color: '#38BDF8' }}
-                                        />
+                                        <Tooltip labelFormatter={formatChartTime} contentStyle={tooltipStyle} />
                                         <Area
                                             type="monotone"
                                             dataKey="usedSpots"
+                                            name="Used Spots"
                                             stroke="#38BDF8"
                                             fill="url(#usedSpots)"
                                             strokeWidth={3}
@@ -407,7 +408,17 @@ export default function Dashboard() {
                                                 strokeWidth: 2,
                                             }}
                                         />
-                                    </AreaChart>
+                                        <Line
+                                            type="monotone"
+                                            dataKey="totalSpots"
+                                            name="Total Spots"
+                                            stroke="#64748b"
+                                            strokeDasharray="5 4"
+                                            strokeWidth={2}
+                                            dot={false}
+                                            activeDot={{ r: 4 }}
+                                        />
+                                    </ComposedChart>
                                 </ResponsiveContainer>
                             </CardContent>
                         </Card>

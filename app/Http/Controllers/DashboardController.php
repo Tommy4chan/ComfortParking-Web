@@ -119,6 +119,7 @@ class DashboardController extends Controller
                 $t = $grouped[$ts];
                 $lastKnown = [
                     'usedSpots' => round($t->avg_used_spots),
+                    'totalSpots' => $totalSpots,
                     'freeSpots' => max(0, $totalSpots - round($t->avg_used_spots)),
                     'online' => round($t->online_device_minutes / $bucketMinutes),
                     'warning' => 0,
