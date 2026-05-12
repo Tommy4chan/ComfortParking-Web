@@ -140,8 +140,7 @@ class AggregateTelemetry extends Command
             $totalSpots = $snapshots->first()->total_spots;
             $avgOccupancy = $totalSpots > 0 ? ($avgUsed / $totalSpots) * 100 : 0;
 
-            $onlineMinutes = $snapshots->where('status', 'online')->count() * 5; // approx assuming 5 min intervals
-            $offlineMinutes = $snapshots->where('status', 'offline')->count() * 5;
+            [$onlineMinutes, $offlineMinutes] = $this->calculateOnlineOfflineMinutes($snapshots, $bucketMinutes);
 
             DeviceTelemetryHourly::updateOrCreate(
                 [
@@ -163,6 +162,21 @@ class AggregateTelemetry extends Command
                 ]
             );
         }
+    }
+
+    private function calculateOnlineOfflineMinutes($snapshots, int $bucketMinutes): array
+    {
+        $total = max(1, $snapshots->count());
+        $onlineCount = $snapshots->where('status', 'online')->count();
+        $offlineCount = $snapshots->where('status', 'offline')->count();
+
+        $onlineMinutes = (int) round(($onlineCount / $total) * $bucketMinutes);
+        $offlineMinutes = (int) round(($offlineCount / $total) * $bucketMinutes);
+
+        $onlineMinutes = min($bucketMinutes, max(0, $onlineMinutes));
+        $offlineMinutes = min($bucketMinutes, max(0, $offlineMinutes));
+
+        return [$onlineMinutes, $offlineMinutes];
     }
 
     private function aggregateZoneLevel(Carbon $start, Carbon $end)

@@ -80,7 +80,8 @@ class SeedLiveTelemetry extends Command
             $usedSpots = max(0, min($totalSpots, (int) $usedSpots));
             $batteryVoltage = $device->battery_voltage ?? rand(3600, 4200);
 
-            $childCount = $device->childDevices->count();
+            $childDevices = $device->childDevices;
+            $childCount = $childDevices->count();
             $onlineChildCount = $childCount > 0 ? $childCount : $totalSpots;
             $offlineChildCount = 0;
 
@@ -156,9 +157,28 @@ class SeedLiveTelemetry extends Command
             $device->save();
 
             if ($childCount > 0) {
-                $device->childDevices()->update([
-                    'last_reported_at' => $now,
-                ]);
+                $childBatteryVoltage = max(3100, min(4200, $batteryVoltage + rand(-150, 150)));
+                $usedChildCount = min($usedSpots, $childCount);
+                $childIds = $childDevices->pluck('id')->all();
+                shuffle($childIds);
+                $usedChildIds = array_slice($childIds, 0, $usedChildCount);
+                $freeChildIds = array_slice($childIds, $usedChildCount);
+
+                if (! empty($usedChildIds)) {
+                    $device->childDevices()->whereIn('id', $usedChildIds)->update([
+                        'last_reported_at' => $now,
+                        'battery_voltage' => $childBatteryVoltage,
+                        'is_spot_used' => true,
+                    ]);
+                }
+
+                if (! empty($freeChildIds)) {
+                    $device->childDevices()->whereIn('id', $freeChildIds)->update([
+                        'last_reported_at' => $now,
+                        'battery_voltage' => $childBatteryVoltage,
+                        'is_spot_used' => false,
+                    ]);
+                }
             }
         }
 
